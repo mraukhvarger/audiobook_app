@@ -55,5 +55,9 @@ abstract interface class PlaybackEngine {
 
   Future<void> setSpeed(double speed);
 
+  Future<void> setVolume(double volume);
+
+  Future<void> setBoostDb(double decibels);
+
   Future<void> dispose();
 }

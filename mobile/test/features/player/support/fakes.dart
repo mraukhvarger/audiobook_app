@@ -9,7 +9,12 @@ import 'package:player_book/features/player/domain/engine/playback_engine.dart';
 import 'package:player_book/features/player/domain/models/playback_progress.dart';
 import 'package:player_book/features/player/domain/repositories/playback_settings_repository.dart';
 import 'package:player_book/features/player/domain/repositories/progress_repository.dart';
+import 'package:player_book/features/player/domain/repositories/sleep_timer_settings_repository.dart';
+import 'package:player_book/features/player/domain/repositories/volume_settings_repository.dart';
 import 'package:player_book/features/player/domain/settings/playback_settings.dart';
+import 'package:player_book/features/player/domain/sleep_timer/shake_detector.dart';
+import 'package:player_book/features/player/domain/sleep_timer/sleep_timer_settings.dart';
+import 'package:player_book/features/player/domain/volume/volume_state.dart';
 
 class FakePlaybackEngine implements PlaybackEngine {
   final _positionController = StreamController<Duration>.broadcast();
@@ -24,6 +29,8 @@ class FakePlaybackEngine implements PlaybackEngine {
   Duration? initialPosition;
   final List<({int? index, Duration position})> seeks = [];
   final List<double> speeds = [];
+  final List<double> volumes = [];
+  final List<double> boosts = [];
   bool disposed = false;
 
   bool _playing = false;
@@ -31,6 +38,12 @@ class FakePlaybackEngine implements PlaybackEngine {
   Duration _position = Duration.zero;
   Duration? _duration;
   double _speed = 1.0;
+  double _volume = 1.0;
+  double _boostDb = 0;
+
+  double get volume => _volume;
+
+  double get boostDb => _boostDb;
 
   @override
   bool get playing => _playing;
@@ -101,6 +114,18 @@ class FakePlaybackEngine implements PlaybackEngine {
   Future<void> setSpeed(double speed) async {
     _speed = speed;
     speeds.add(speed);
+  }
+
+  @override
+  Future<void> setVolume(double volume) async {
+    _volume = volume;
+    volumes.add(volume);
+  }
+
+  @override
+  Future<void> setBoostDb(double decibels) async {
+    _boostDb = decibels;
+    boosts.add(decibels);
   }
 
   @override
@@ -188,6 +213,62 @@ class FakeSettingsRepository implements PlaybackSettingsRepository {
   Future<void> save(PlaybackSettings value) async {
     settings = value;
   }
+}
+
+class FakeSleepTimerSettingsRepository implements SleepTimerSettingsRepository {
+  FakeSleepTimerSettingsRepository([
+    this.settings = const SleepTimerSettings(),
+  ]);
+
+  SleepTimerSettings settings;
+  int writes = 0;
+
+  @override
+  Future<SleepTimerSettings> load() async => settings;
+
+  @override
+  Future<void> save(SleepTimerSettings value) async {
+    settings = value;
+    writes++;
+  }
+}
+
+class FakeVolumeSettingsRepository implements VolumeSettingsRepository {
+  FakeVolumeSettingsRepository([this.state = const VolumeState()]);
+
+  VolumeState state;
+  int writes = 0;
+
+  @override
+  Future<VolumeState> load() async => state;
+
+  @override
+  Future<void> save(VolumeState value) async {
+    state = value;
+    writes++;
+  }
+}
+
+class FakeShakeDetector implements ShakeDetector {
+  FakeShakeDetector(this.onShake);
+  final void Function() onShake;
+  bool started = false;
+  int triggers = 0;
+
+  @override
+  void start() => started = true;
+
+  @override
+  void stop() => started = false;
+
+  @override
+  void trigger() {
+    triggers++;
+    onShake();
+  }
+
+  @override
+  Future<void> dispose() async => started = false;
 }
 
 Book sampleBook({String id = 'book-1'}) {

@@ -10,8 +10,14 @@ import '../../domain/models/book_position.dart';
 import '../../domain/models/playback_progress.dart';
 import '../../domain/repositories/playback_settings_repository.dart';
 import '../../domain/repositories/progress_repository.dart';
+import '../../domain/repositories/sleep_timer_settings_repository.dart';
+import '../../domain/repositories/volume_settings_repository.dart';
 import '../../domain/settings/playback_settings.dart';
+import '../../domain/sleep_timer/shake_detector.dart';
+import '../../domain/sleep_timer/sleep_timer.dart';
+import '../../domain/sleep_timer/sleep_timer_settings.dart';
 import '../../domain/timeline/book_timeline.dart';
+import '../../domain/volume/volume_state.dart';
 
 class PlayerController extends ChangeNotifier {
   PlayerController({
@@ -20,23 +26,38 @@ class PlayerController extends ChangeNotifier {
     required LibraryRepository libraryRepository,
     required ProgressRepository progressRepository,
     required PlaybackSettingsRepository settingsRepository,
+    required SleepTimerSettingsRepository sleepTimerSettingsRepository,
+    required ShakeDetectorFactory shakeDetectorFactory,
+    required VolumeSettingsRepository volumeSettingsRepository,
     DateTime Function()? now,
     Duration saveInterval = const Duration(seconds: 5),
+    Duration fadeDuration = const Duration(seconds: 10),
+    Duration sleepTickInterval = const Duration(milliseconds: 100),
   })  : _bookId = bookId,
         _engine = engine,
         _libraryRepository = libraryRepository,
         _progressRepository = progressRepository,
         _settingsRepository = settingsRepository,
+        _sleepTimerSettingsRepository = sleepTimerSettingsRepository,
+        _shakeDetectorFactory = shakeDetectorFactory,
+        _volumeSettingsRepository = volumeSettingsRepository,
         _now = now ?? DateTime.now,
-        _saveInterval = saveInterval;
+        _saveInterval = saveInterval,
+        _sleepTimer = SleepTimer(fadeDuration: fadeDuration),
+        _sleepTickInterval = sleepTickInterval;
 
   final String _bookId;
   final PlaybackEngine _engine;
   final LibraryRepository _libraryRepository;
   final ProgressRepository _progressRepository;
   final PlaybackSettingsRepository _settingsRepository;
+  final SleepTimerSettingsRepository _sleepTimerSettingsRepository;
+  final ShakeDetectorFactory _shakeDetectorFactory;
+  final VolumeSettingsRepository _volumeSettingsRepository;
   final DateTime Function() _now;
   final Duration _saveInterval;
+  final SleepTimer _sleepTimer;
+  final Duration _sleepTickInterval;
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
@@ -51,9 +72,13 @@ class PlayerController extends ChangeNotifier {
   int _positionMs = 0;
   int _currentIndex = 0;
   double _speed = 1.0;
+  VolumeState _volumeState = const VolumeState();
   String? _errorMessage;
   PlaybackSettings _settings = const PlaybackSettings();
+  SleepTimerSettings _sleepSettings = const SleepTimerSettings();
   DateTime _lastSavedAt = DateTime.fromMillisecondsSinceEpoch(0);
+  Timer? _sleepTicker;
+  ShakeDetector? _shakeDetector;
 
   Book? get book => _book;
 
@@ -75,6 +100,18 @@ class PlayerController extends ChangeNotifier {
 
   PlaybackSettings get settings => _settings;
 
+  SleepTimerSettings get sleepSettings => _sleepSettings;
+
+  bool get sleepTimerActive => _sleepTimer.isActive;
+
+  Duration get sleepTimerDuration => _sleepSettings.duration;
+
+  SleepTimerPhase get sleepTimerPhase => _sleepTimer.phaseAt(_now());
+
+  Duration? get sleepTimerRemaining => _sleepTimer.remainingAt(_now());
+
+  VolumeState get volumeState => _volumeState;
+
   String? get errorMessage => _errorMessage;
 
   double get progress {
@@ -89,6 +126,8 @@ class PlayerController extends ChangeNotifier {
     notifyListeners();
     try {
       _settings = await _settingsRepository.load();
+      _sleepSettings = await _sleepTimerSettingsRepository.load();
+      _volumeState = await _volumeSettingsRepository.load();
       _book = await _libraryRepository.getBook(_bookId);
       if (_book == null) {
         _errorMessage = 'Книга не найдена';
@@ -130,6 +169,8 @@ class PlayerController extends ChangeNotifier {
         );
         await _engine.setSpeed(_speed);
       }
+      await _engine.setVolume(_volumeState.volume);
+      await _engine.setBoostDb(_volumeState.boostDb);
       _loading = false;
       notifyListeners();
     } catch (error) {
@@ -141,6 +182,9 @@ class PlayerController extends ChangeNotifier {
 
   Future<void> play() async {
     if (_tracks.isEmpty) return;
+    if (_sleepTimer.phaseAt(_now()) == SleepTimerPhase.fired) {
+      await cancelSleepTimer();
+    }
     if (_completed) {
       await seekToMs(0);
       _completed = false;
@@ -149,6 +193,7 @@ class PlayerController extends ChangeNotifier {
           .clamp(0, durationMs);
       await seekToMs(target);
     }
+    await _engine.setVolume(_volumeState.volume);
     _hasStarted = true;
     _errorMessage = null;
     notifyListeners();
@@ -198,6 +243,139 @@ class PlayerController extends ChangeNotifier {
   }
 
   Future<void> flushProgress() => _persist(force: true);
+
+  Future<void> setVolume(double volume) async {
+    final clamped = volume.clamp(VolumeState.minVolume, VolumeState.maxVolume);
+    _volumeState = _volumeState.copyWith(volume: clamped);
+    await _engine.setVolume(clamped);
+    await _volumeSettingsRepository.save(_volumeState);
+    notifyListeners();
+  }
+
+  Future<void> setBoost(double decibels) async {
+    final clamped = decibels.clamp(
+      VolumeState.minBoostDb,
+      VolumeState.maxBoostDb,
+    );
+    _volumeState = _volumeState.copyWith(boostDb: clamped);
+    await _engine.setBoostDb(clamped);
+    await _volumeSettingsRepository.save(_volumeState);
+    notifyListeners();
+  }
+
+  Future<void> resetVolume() async {
+    _volumeState = const VolumeState();
+    await _engine.setVolume(_volumeState.volume);
+    await _engine.setBoostDb(_volumeState.boostDb);
+    await _volumeSettingsRepository.save(_volumeState);
+    notifyListeners();
+  }
+
+  Future<void> startSleepTimer([Duration? duration]) async {
+    _sleepTimer.start(now: _now(), duration: duration ?? sleepTimerDuration);
+    _startSleepTicker();
+    _startShakeDetector();
+    notifyListeners();
+  }
+
+  Future<void> cancelSleepTimer() async {
+    _sleepTimer.cancel();
+    _stopSleepTicker();
+    _stopShakeDetector();
+    await _engine.setVolume(_volumeState.volume);
+    notifyListeners();
+  }
+
+  Future<void> toggleSleepTimer() async {
+    if (_sleepTimer.isActive) {
+      await cancelSleepTimer();
+    } else {
+      await startSleepTimer();
+    }
+  }
+
+  Future<void> updateSleepSettings(SleepTimerSettings settings) async {
+    final wasActive = _sleepTimer.isActive;
+    _sleepSettings = settings;
+    if (wasActive) {
+      _sleepTimer.start(now: _now(), duration: settings.duration);
+      _startSleepTicker();
+      _stopShakeDetector();
+      _startShakeDetector();
+    }
+    await _sleepTimerSettingsRepository.save(settings);
+    notifyListeners();
+  }
+
+  /// Runs the shake handler without the sensor. Used by tests and the
+  /// debug-only button in the sleep timer panel.
+  Future<void> simulateShake() async {
+    await _onShake();
+  }
+
+  @visibleForTesting
+  Future<void> debugSleepTick() async {
+    await _onSleepTick();
+  }
+
+  Future<void> _onSleepTick() async {
+    final now = _now();
+    final phase = _sleepTimer.phaseAt(now);
+    if (phase == SleepTimerPhase.fired) {
+      _stopSleepTicker();
+      await _engine.setVolume(0);
+      await _engine.pause();
+      await _persist(force: true);
+      notifyListeners();
+      return;
+    }
+    if (phase == SleepTimerPhase.inactive) {
+      _stopSleepTicker();
+      return;
+    }
+    final factor = _sleepTimer.volumeFactorAt(now) ?? 1;
+    await _engine.setVolume(_volumeState.volume * factor);
+    notifyListeners();
+  }
+
+  Future<void> _onShake() async {
+    if (!_sleepSettings.shakeEnabled) return;
+    if (!_sleepTimer.isActive) return;
+    final now = _now();
+    final wasFired = _sleepTimer.phaseAt(now) == SleepTimerPhase.fired;
+    _sleepTimer.extend(now: now);
+    await _engine.setVolume(_volumeState.volume);
+    if (wasFired && !_playing) {
+      unawaited(_engine.play());
+    }
+    _startSleepTicker();
+    _startShakeDetector();
+    notifyListeners();
+  }
+
+  void _startSleepTicker() {
+    _sleepTicker ??= Timer.periodic(_sleepTickInterval, (_) {
+      unawaited(_onSleepTick());
+    });
+  }
+
+  void _stopSleepTicker() {
+    _sleepTicker?.cancel();
+    _sleepTicker = null;
+  }
+
+  void _startShakeDetector() {
+    if (!_sleepSettings.shakeEnabled) return;
+    _shakeDetector ??= _shakeDetectorFactory(
+      () => unawaited(_onShake()),
+      _sleepSettings.shakeThreshold,
+    )..start();
+  }
+
+  void _stopShakeDetector() {
+    _shakeDetector?.stop();
+    _shakeDetector = null;
+  }
 
   void _bindStreams() {
     _subscriptions.add(_engine.currentIndexStream.listen(_onIndexChanged));
@@ -313,6 +491,9 @@ class PlayerController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _stopSleepTicker();
+    _shakeDetector?.dispose();
+    _shakeDetector = null;
     for (final subscription in _subscriptions) {
       subscription.cancel();
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:player_book/features/library/presentation/providers/library_providers.dart';
+import 'package:player_book/features/player/domain/volume/volume_state.dart';
 import 'package:player_book/features/player/presentation/providers/player_providers.dart';
 import 'package:player_book/features/player/presentation/screens/player_screen.dart';
 
@@ -12,6 +13,8 @@ void main() {
   late FakeLibraryRepository library;
   late FakeProgressRepository progress;
   late FakeSettingsRepository settings;
+  late FakeSleepTimerSettingsRepository sleepSettings;
+  late FakeVolumeSettingsRepository volumeSettings;
 
   setUp(() {
     engine = FakePlaybackEngine();
@@ -34,6 +37,8 @@ void main() {
     );
     progress = FakeProgressRepository();
     settings = FakeSettingsRepository();
+    sleepSettings = FakeSleepTimerSettingsRepository();
+    volumeSettings = FakeVolumeSettingsRepository();
   });
 
   Widget wrap() {
@@ -43,6 +48,11 @@ void main() {
         libraryRepositoryProvider.overrideWithValue(library),
         progressRepositoryProvider.overrideWithValue(progress),
         playbackSettingsRepositoryProvider.overrideWithValue(settings),
+        sleepTimerSettingsRepositoryProvider.overrideWithValue(sleepSettings),
+        volumeSettingsRepositoryProvider.overrideWithValue(volumeSettings),
+        shakeDetectorFactoryProvider.overrideWithValue(
+          (onShake, threshold) => FakeShakeDetector(onShake),
+        ),
       ],
       child: const MaterialApp(home: PlayerScreen(bookId: 'book-1')),
     );
@@ -95,5 +105,52 @@ void main() {
 
     expect(engine.speeds, contains(1.5));
     expect(settings.settings.speed, 1.5);
+  });
+
+  testWidgets('sleep timer presets are shown and persisted', (tester) async {
+    await tester.pumpWidget(wrap());
+    await settle(tester);
+
+    final timerButton = find.textContaining('Таймер сна');
+    await tester.ensureVisible(timerButton);
+    await tester.pump();
+    await tester.tap(timerButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('5 мин'), findsOneWidget);
+    expect(find.text('10 мин'), findsOneWidget);
+    expect(find.text('15 мин'), findsOneWidget);
+
+    await tester.tap(find.text('5 мин'));
+    await tester.pumpAndSettle();
+    expect(sleepSettings.settings.durationMinutes, 5);
+
+    await tester.tap(find.byType(Switch).first);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Осталось'), findsOneWidget);
+  });
+
+  testWidgets('volume sheet shows and resets volume and boost', (
+    tester,
+  ) async {
+    volumeSettings.state = const VolumeState(volume: 0.3, boostDb: 5);
+    await tester.pumpWidget(wrap());
+    await settle(tester);
+
+    final volumeButton = find.textContaining('Громкость');
+    await tester.ensureVisible(volumeButton);
+    await tester.pump();
+    await tester.tap(volumeButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('30%'), findsOneWidget);
+    expect(find.text('+5 дБ'), findsOneWidget);
+
+    await tester.tap(find.textContaining('Сбросить'));
+    await tester.pumpAndSettle();
+
+    expect(volumeSettings.state, const VolumeState());
+    expect(find.text('100%'), findsOneWidget);
   });
 }

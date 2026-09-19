@@ -3,6 +3,9 @@ import 'package:player_book/features/player/domain/engine/playback_engine.dart';
 import 'package:player_book/features/player/domain/models/book_position.dart';
 import 'package:player_book/features/player/domain/models/playback_progress.dart';
 import 'package:player_book/features/player/domain/settings/playback_settings.dart';
+import 'package:player_book/features/player/domain/sleep_timer/sleep_timer.dart';
+import 'package:player_book/features/player/domain/sleep_timer/sleep_timer_settings.dart';
+import 'package:player_book/features/player/domain/volume/volume_state.dart';
 import 'package:player_book/features/player/presentation/controllers/player_controller.dart';
 
 import '../support/fakes.dart';
@@ -26,6 +29,9 @@ void main() {
   late FakeLibraryRepository library;
   late FakeProgressRepository progress;
   late FakeSettingsRepository settings;
+  late FakeSleepTimerSettingsRepository sleepSettings;
+  late FakeShakeDetector? shakeDetector;
+  late FakeVolumeSettingsRepository volumeSettings;
   late MutableClock clock;
   late PlayerController controller;
 
@@ -42,6 +48,9 @@ void main() {
     );
     progress = FakeProgressRepository();
     settings = FakeSettingsRepository();
+    sleepSettings = FakeSleepTimerSettingsRepository();
+    shakeDetector = null;
+    volumeSettings = FakeVolumeSettingsRepository();
     clock = MutableClock(DateTime.utc(2026, 1, 1, 12));
     controller = PlayerController(
       bookId: 'book-1',
@@ -49,6 +58,13 @@ void main() {
       libraryRepository: library,
       progressRepository: progress,
       settingsRepository: settings,
+      sleepTimerSettingsRepository: sleepSettings,
+      shakeDetectorFactory: (onShake, threshold) {
+        final detector = FakeShakeDetector(onShake);
+        shakeDetector = detector;
+        return detector;
+      },
+      volumeSettingsRepository: volumeSettings,
       now: clock.call,
     );
   });
@@ -223,5 +239,180 @@ void main() {
 
     expect(controller.book, isNull);
     expect(controller.loading, isFalse);
+  });
+
+  test('sleep timer fades volume and pauses when it fires', () async {
+    await controller.initialize();
+
+    await controller.startSleepTimer(const Duration(minutes: 5));
+    expect(controller.sleepTimerActive, isTrue);
+    expect(shakeDetector!.started, isTrue);
+
+    clock.advance(const Duration(minutes: 4, seconds: 55));
+    await controller.debugSleepTick();
+    expect(controller.sleepTimerPhase, SleepTimerPhase.fading);
+    expect(engine.volumes.last, lessThan(1.0));
+
+    clock.advance(const Duration(seconds: 5));
+    await controller.debugSleepTick();
+    expect(controller.sleepTimerPhase, SleepTimerPhase.fired);
+    expect(engine.volumes.last, 0);
+    expect(engine.playing, isFalse);
+  });
+
+  test('sleep timer fade decreases volume monotonically to zero', () async {
+    await controller.initialize();
+    await controller.startSleepTimer(const Duration(minutes: 1));
+
+    final volumes = <double>[];
+    for (var i = 0; i < 12; i++) {
+      clock.advance(const Duration(seconds: 5));
+      await controller.debugSleepTick();
+      volumes.add(engine.volumes.last);
+    }
+
+    expect(volumes.first, 1.0);
+    expect(volumes.last, 0);
+    for (var i = 1; i < volumes.length; i++) {
+      expect(volumes[i], lessThanOrEqualTo(volumes[i - 1]));
+    }
+  });
+
+  test('shake during fade extends the timer and restores volume', () async {
+    await controller.initialize();
+    await controller.startSleepTimer(const Duration(minutes: 1));
+
+    clock.advance(const Duration(seconds: 55));
+    await controller.debugSleepTick();
+    expect(engine.volumes.last, lessThan(1));
+
+    await controller.simulateShake();
+    expect(engine.volumes.last, 1.0);
+
+    clock.advance(const Duration(seconds: 55));
+    await controller.debugSleepTick();
+    expect(controller.sleepTimerPhase, SleepTimerPhase.fading);
+  });
+
+  test('shake after firing resumes playback and restarts the timer', () async {
+    await controller.initialize();
+    await controller.play();
+    await controller.startSleepTimer(const Duration(minutes: 1));
+
+    clock.advance(const Duration(seconds: 60));
+    await controller.debugSleepTick();
+    expect(engine.playing, isFalse);
+
+    await controller.simulateShake();
+
+    expect(engine.playing, isTrue);
+    expect(controller.sleepTimerActive, isTrue);
+    expect(controller.sleepTimerPhase, SleepTimerPhase.active);
+  });
+
+  test('cancelling the sleep timer restores the volume', () async {
+    await controller.initialize();
+    await controller.startSleepTimer(const Duration(minutes: 1));
+
+    clock.advance(const Duration(seconds: 55));
+    await controller.debugSleepTick();
+    await controller.cancelSleepTimer();
+
+    expect(controller.sleepTimerActive, isFalse);
+    expect(engine.volumes.last, 1.0);
+  });
+
+  test('saved duration is reused when toggling the timer', () async {
+    await controller.initialize();
+    await controller.updateSleepSettings(
+      const SleepTimerSettings(durationMinutes: 25),
+    );
+
+    expect(sleepSettings.settings.durationMinutes, 25);
+
+    await controller.toggleSleepTimer();
+    expect(controller.sleepTimerActive, isTrue);
+    expect(controller.sleepTimerRemaining!.inMinutes, greaterThanOrEqualTo(24));
+
+    await controller.toggleSleepTimer();
+    expect(controller.sleepTimerActive, isFalse);
+
+    await controller.toggleSleepTimer();
+    expect(controller.sleepTimerRemaining!.inMinutes, greaterThanOrEqualTo(24));
+  });
+
+  test('loads saved sleep timer settings on initialize', () async {
+    sleepSettings.settings =
+        const SleepTimerSettings(durationMinutes: 5, shakeEnabled: false);
+
+    await controller.initialize();
+
+    expect(controller.sleepSettings.durationMinutes, 5);
+    expect(controller.sleepSettings.shakeEnabled, isFalse);
+  });
+
+  test('applies and persists volume', () async {
+    await controller.initialize();
+
+    await controller.setVolume(0.6);
+
+    expect(engine.volumes.last, 0.6);
+    expect(volumeSettings.state.volume, 0.6);
+  });
+
+  test('clamps volume to the allowed range', () async {
+    await controller.initialize();
+
+    await controller.setVolume(1.5);
+    expect(controller.volumeState.volume, 1.0);
+
+    await controller.setVolume(-0.2);
+    expect(controller.volumeState.volume, 0.0);
+  });
+
+  test('applies and persists boost, limited to the maximum', () async {
+    await controller.initialize();
+
+    await controller.setBoost(25);
+
+    expect(engine.boosts.last, VolumeState.maxBoostDb);
+    expect(volumeSettings.state.boostDb, VolumeState.maxBoostDb);
+  });
+
+  test('restores saved volume and boost on initialize', () async {
+    volumeSettings.state = const VolumeState(volume: 0.4, boostDb: 6);
+
+    await controller.initialize();
+
+    expect(engine.volumes.last, 0.4);
+    expect(engine.boosts.last, 6);
+    expect(controller.volumeState, const VolumeState(volume: 0.4, boostDb: 6));
+  });
+
+  test('reset returns volume and boost to defaults', () async {
+    await controller.initialize();
+    await controller.setVolume(0.3);
+    await controller.setBoost(10);
+
+    await controller.resetVolume();
+
+    expect(controller.volumeState, const VolumeState());
+    expect(engine.volumes.last, 1.0);
+    expect(engine.boosts.last, 0);
+    expect(volumeSettings.state, const VolumeState());
+  });
+
+  test('sleep timer fades relative to the user volume', () async {
+    await controller.initialize();
+    await controller.setVolume(0.5);
+
+    await controller.startSleepTimer(const Duration(minutes: 1));
+    clock.advance(const Duration(seconds: 55));
+    await controller.debugSleepTick();
+
+    expect(engine.volumes.last, closeTo(0.25, 1e-9));
+
+    await controller.cancelSleepTimer();
+    expect(engine.volumes.last, 0.5);
   });
 }

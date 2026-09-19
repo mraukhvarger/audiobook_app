@@ -6,9 +6,21 @@ import 'package:just_audio_background/just_audio_background.dart';
 import '../../domain/engine/playback_engine.dart';
 
 class JustAudioEngine implements PlaybackEngine {
-  JustAudioEngine({AudioPlayer? player}) : _player = player ?? AudioPlayer();
+  factory JustAudioEngine({AudioPlayer? player}) {
+    final loudnessEnhancer = AndroidLoudnessEnhancer();
+    final resolvedPlayer = player ??
+        AudioPlayer(
+          audioPipeline: AudioPipeline(
+            androidAudioEffects: [loudnessEnhancer],
+          ),
+        );
+    return JustAudioEngine._(resolvedPlayer, loudnessEnhancer);
+  }
+
+  JustAudioEngine._(this._player, this._loudnessEnhancer);
 
   final AudioPlayer _player;
+  final AndroidLoudnessEnhancer _loudnessEnhancer;
   final _errors = StreamController<Object>.broadcast();
 
   @override
@@ -95,7 +107,18 @@ class JustAudioEngine implements PlaybackEngine {
   Future<void> setSpeed(double speed) => _player.setSpeed(speed);
 
   @override
+  Future<void> setVolume(double volume) => _player.setVolume(volume);
+
+  @override
+  Future<void> setBoostDb(double decibels) async {
+    final clamped = decibels.clamp(0.0, 20.0);
+    await _loudnessEnhancer.setEnabled(clamped > 0);
+    await _loudnessEnhancer.setTargetGain(clamped);
+  }
+
+  @override
   Future<void> dispose() async {
+    await _loudnessEnhancer.setEnabled(false);
     await _errors.close();
     await _player.dispose();
   }

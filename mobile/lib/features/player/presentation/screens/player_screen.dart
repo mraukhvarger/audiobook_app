@@ -5,10 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../library/presentation/providers/library_providers.dart';
+import '../../domain/sleep_timer/sleep_timer.dart';
 import '../controllers/player_controller.dart';
 import '../format_clock.dart';
 import '../providers/player_providers.dart';
 import '../widgets/playback_settings_sheet.dart';
+import '../widgets/sleep_timer_sheet.dart';
+import '../widgets/volume_sheet.dart';
 
 class PlayerScreen extends ConsumerStatefulWidget {
   const PlayerScreen({super.key, required this.bookId});
@@ -151,6 +154,25 @@ class _PlayerBody extends StatelessWidget {
             icon: const Icon(Icons.speed),
             label: Text('Скорость ${settings.speed.toStringAsFixed(2)}x'),
           ),
+          TextButton.icon(
+            onPressed: () => showSleepTimerSheet(context, controller.book!.id),
+            icon: const Icon(Icons.bedtime_outlined),
+            label: Text(_sleepLabel(controller)),
+          ),
+          TextButton.icon(
+            onPressed: () => showVolumeSheet(context, controller.book!.id),
+            icon: const Icon(Icons.volume_up),
+            label: Text(_volumeLabel(controller)),
+          ),
+          if (controller.sleepTimerPhase == SleepTimerPhase.fading ||
+              controller.sleepTimerPhase == SleepTimerPhase.fired)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Встряхните телефон, чтобы продлить',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           if (controller.errorMessage != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -163,6 +185,23 @@ class _PlayerBody extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _sleepLabel(PlayerController controller) {
+    final remaining = controller.sleepTimerRemaining;
+    if (controller.sleepTimerActive && remaining != null) {
+      return 'Сон ${formatClock(remaining)}';
+    }
+    return 'Таймер сна';
+  }
+
+  String _volumeLabel(PlayerController controller) {
+    final state = controller.volumeState;
+    final percent = '${state.percent.round()}%';
+    if (state.hasBoost) {
+      return 'Громкость $percent +${state.boostDb.round()} дБ';
+    }
+    return 'Громкость $percent';
   }
 }
 
