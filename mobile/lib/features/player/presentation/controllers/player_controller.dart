@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../../library/domain/models/book.dart';
 import '../../../library/domain/models/track.dart';
 import '../../../library/domain/repositories/library_repository.dart';
+import '../../../storage/domain/track_source_resolver.dart';
 import '../../domain/engine/playback_engine.dart';
 import '../../domain/models/book_position.dart';
 import '../../domain/models/playback_progress.dart';
@@ -19,6 +20,8 @@ import '../../domain/sleep_timer/sleep_timer_settings.dart';
 import '../../domain/timeline/book_timeline.dart';
 import '../../domain/volume/volume_state.dart';
 
+enum PlayerError { bookNotFound, startFailed, trackFailed }
+
 class PlayerController extends ChangeNotifier {
   PlayerController({
     required String bookId,
@@ -29,6 +32,7 @@ class PlayerController extends ChangeNotifier {
     required SleepTimerSettingsRepository sleepTimerSettingsRepository,
     required ShakeDetectorFactory shakeDetectorFactory,
     required VolumeSettingsRepository volumeSettingsRepository,
+    TrackSourceResolver? sourceResolver,
     DateTime Function()? now,
     Duration saveInterval = const Duration(seconds: 5),
     Duration fadeDuration = const Duration(seconds: 10),
@@ -41,6 +45,7 @@ class PlayerController extends ChangeNotifier {
         _sleepTimerSettingsRepository = sleepTimerSettingsRepository,
         _shakeDetectorFactory = shakeDetectorFactory,
         _volumeSettingsRepository = volumeSettingsRepository,
+        _sourceResolver = sourceResolver ?? const LocalTrackSourceResolver(),
         _now = now ?? DateTime.now,
         _saveInterval = saveInterval,
         _sleepTimer = SleepTimer(fadeDuration: fadeDuration),
@@ -54,6 +59,7 @@ class PlayerController extends ChangeNotifier {
   final SleepTimerSettingsRepository _sleepTimerSettingsRepository;
   final ShakeDetectorFactory _shakeDetectorFactory;
   final VolumeSettingsRepository _volumeSettingsRepository;
+  final TrackSourceResolver _sourceResolver;
   final DateTime Function() _now;
   final Duration _saveInterval;
   final SleepTimer _sleepTimer;
@@ -73,7 +79,7 @@ class PlayerController extends ChangeNotifier {
   int _currentIndex = 0;
   double _speed = 1.0;
   VolumeState _volumeState = const VolumeState();
-  String? _errorMessage;
+  PlayerError? _error;
   PlaybackSettings _settings = const PlaybackSettings();
   SleepTimerSettings _sleepSettings = const SleepTimerSettings();
   DateTime _lastSavedAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -112,7 +118,7 @@ class PlayerController extends ChangeNotifier {
 
   VolumeState get volumeState => _volumeState;
 
-  String? get errorMessage => _errorMessage;
+  PlayerError? get error => _error;
 
   double get progress {
     if (_completed) return 1;
@@ -130,7 +136,7 @@ class PlayerController extends ChangeNotifier {
       _volumeState = await _volumeSettingsRepository.load();
       _book = await _libraryRepository.getBook(_bookId);
       if (_book == null) {
-        _errorMessage = 'Книга не найдена';
+        _error = PlayerError.bookNotFound;
         _loading = false;
         notifyListeners();
         return;
@@ -163,18 +169,21 @@ class PlayerController extends ChangeNotifier {
 
       if (_tracks.isNotEmpty) {
         await _engine.load(
-          _engineTracks(),
+          await _engineTracks(),
           initialIndex: _currentIndex,
           initialPosition: start.offset,
         );
         await _engine.setSpeed(_speed);
+        if (_tracks[_currentIndex].isRemote) {
+          await _sourceResolver.markPlayed(_tracks[_currentIndex].id);
+        }
       }
       await _engine.setVolume(_volumeState.volume);
       await _engine.setBoostDb(_volumeState.boostDb);
       _loading = false;
       notifyListeners();
     } catch (error) {
-      _errorMessage = 'Не удалось запустить воспроизведение';
+      _error = PlayerError.startFailed;
       _loading = false;
       notifyListeners();
     }
@@ -195,7 +204,7 @@ class PlayerController extends ChangeNotifier {
     }
     await _engine.setVolume(_volumeState.volume);
     _hasStarted = true;
-    _errorMessage = null;
+    _error = null;
     notifyListeners();
     unawaited(_engine.play());
   }
@@ -401,6 +410,9 @@ class PlayerController extends ChangeNotifier {
     if (index == null || index == _currentIndex) return;
     _currentIndex = index;
     _completed = false;
+    if (index >= 0 && index < _tracks.length && _tracks[index].isRemote) {
+      unawaited(_sourceResolver.markPlayed(_tracks[index].id));
+    }
     notifyListeners();
     unawaited(_persist(force: true));
   }
@@ -424,7 +436,7 @@ class PlayerController extends ChangeNotifier {
   }
 
   void _onError(Object error) {
-    _errorMessage = 'Не удалось воспроизвести трек, перехожу к следующему';
+    _error = PlayerError.trackFailed;
     notifyListeners();
     unawaited(_skipAfterError());
   }
@@ -467,26 +479,31 @@ class PlayerController extends ChangeNotifier {
     return index.clamp(0, _tracks.length - 1);
   }
 
-  List<EngineTrack> _engineTracks() {
+  Future<List<EngineTrack>> _engineTracks() async {
     final cover = _book?.coverPath;
     final artUri = cover == null ? null : Uri.file(cover);
-    return [
-      for (final track in _tracks)
+    final result = <EngineTrack>[];
+    for (final track in _tracks) {
+      ResolvedTrackSource resolved;
+      try {
+        resolved = await _sourceResolver.resolve(track);
+      } catch (_) {
+        resolved =
+            ResolvedTrackSource(uri: trackUri(track.uri), isRemote: false);
+      }
+      result.add(
         EngineTrack(
           id: track.id,
-          uri: _parseUri(track.uri),
+          uri: resolved.uri,
           title: track.fileName,
           album: _book?.title,
           artUri: artUri,
           duration: Duration(milliseconds: track.durationMs),
+          headers: resolved.headers.isEmpty ? null : resolved.headers,
         ),
-    ];
-  }
-
-  Uri _parseUri(String value) {
-    final parsed = Uri.tryParse(value);
-    if (parsed != null && parsed.hasScheme) return parsed;
-    return Uri.file(value);
+      );
+    }
+    return result;
   }
 
   @override

@@ -229,7 +229,7 @@ void main() {
 
     expect(engine.seeks.last.index, 1);
     expect(engine.seeks.last.position, Duration.zero);
-    expect(controller.errorMessage, isNotNull);
+    expect(controller.error, PlayerError.trackFailed);
   });
 
   test('reports a missing book', () async {
@@ -239,6 +239,7 @@ void main() {
 
     expect(controller.book, isNull);
     expect(controller.loading, isFalse);
+    expect(controller.error, PlayerError.bookNotFound);
   });
 
   test('sleep timer fades volume and pauses when it fires', () async {

@@ -44,8 +44,30 @@ class Tracks extends Table {
 
   IntColumn get sizeBytes => integer()();
 
+  TextColumn get sourceProvider => text().nullable()();
+
+  TextColumn get sourceRef => text().nullable()();
+
+  TextColumn get cachePath => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('CacheEntryRow')
+class CacheEntries extends Table {
+  TextColumn get trackId => text()();
+
+  TextColumn get bookId => text()();
+
+  TextColumn get path => text()();
+
+  IntColumn get sizeBytes => integer()();
+
+  DateTimeColumn get lastPlayedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {trackId};
 }
 
 @DataClassName('BookProgressRow')
@@ -65,14 +87,14 @@ class BookProgress extends Table {
   Set<Column> get primaryKey => {bookId};
 }
 
-@DriftDatabase(tables: [Books, Tracks, BookProgress])
+@DriftDatabase(tables: [Books, Tracks, CacheEntries, BookProgress])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -81,6 +103,12 @@ class AppDatabase extends _$AppDatabase {
       onUpgrade: (m, from, to) async {
         if (from < 2) {
           await m.createTable(bookProgress);
+        }
+        if (from < 3) {
+          await m.addColumn(tracks, tracks.sourceProvider);
+          await m.addColumn(tracks, tracks.sourceRef);
+          await m.addColumn(tracks, tracks.cachePath);
+          await m.createTable(cacheEntries);
         }
       },
       beforeOpen: (details) async {

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:player_book/l10n/generated/app_localizations.dart';
 
 import '../../../library/presentation/providers/library_providers.dart';
 import '../../domain/sleep_timer/sleep_timer.dart';
@@ -46,6 +47,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final controller = ref.watch(playerControllerProvider(widget.bookId));
 
     return PopScope(
@@ -58,7 +60,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            tooltip: 'Назад',
+            tooltip: l10n.back,
             onPressed: () {
               if (context.canPop()) {
                 context.pop();
@@ -67,11 +69,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
               }
             },
           ),
-          title: Text(controller.book?.title ?? 'Плеер'),
+          title: Text(controller.book?.title ?? l10n.playerFallback),
           actions: [
             IconButton(
               icon: const Icon(Icons.tune),
-              tooltip: 'Настройки воспроизведения',
+              tooltip: l10n.playbackSettingsTitle,
               onPressed: () =>
                   showPlaybackSettingsSheet(context, widget.bookId),
             ),
@@ -80,7 +82,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         body: controller.loading
             ? const Center(child: CircularProgressIndicator())
             : controller.book == null
-                ? const Center(child: Text('Книга не найдена'))
+                ? Center(child: Text(l10n.bookNotFound))
                 : _PlayerBody(controller: controller),
       ),
     );
@@ -94,8 +96,10 @@ class _PlayerBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final book = controller.book!;
     final settings = controller.settings;
+    final error = controller.error;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -116,7 +120,11 @@ class _PlayerBody extends StatelessWidget {
           ],
           const SizedBox(height: 8),
           Text(
-              'Трек ${controller.currentTrackIndex + 1} из ${controller.tracks.length}'),
+            l10n.trackOfTotal(
+              controller.currentTrackIndex + 1,
+              controller.tracks.length,
+            ),
+          ),
           const SizedBox(height: 24),
           _SeekBar(controller: controller),
           const SizedBox(height: 8),
@@ -125,13 +133,13 @@ class _PlayerBody extends StatelessWidget {
             children: [
               _ControlButton(
                 icon: Icons.replay,
-                label: '−${settings.skipSeconds}с',
+                label: l10n.skipBackSeconds(settings.skipSeconds),
                 onPressed: () => controller.skipBy(-settings.skipSeconds),
               ),
               const SizedBox(width: 24),
               IconButton.filled(
                 iconSize: 48,
-                tooltip: controller.playing ? 'Пауза' : 'Играть',
+                tooltip: controller.playing ? l10n.pause : l10n.play,
                 onPressed: controller.togglePlay,
                 icon: Icon(
                   controller.playing ? Icons.pause : Icons.play_arrow,
@@ -140,7 +148,7 @@ class _PlayerBody extends StatelessWidget {
               const SizedBox(width: 24),
               _ControlButton(
                 icon: Icons.forward,
-                label: '+${settings.skipSeconds}с',
+                label: l10n.skipForwardSeconds(settings.skipSeconds),
                 onPressed: () => controller.skipBy(settings.skipSeconds),
               ),
             ],
@@ -152,32 +160,34 @@ class _PlayerBody extends StatelessWidget {
               controller.book!.id,
             ),
             icon: const Icon(Icons.speed),
-            label: Text('Скорость ${settings.speed.toStringAsFixed(2)}x'),
+            label: Text(
+              l10n.playbackSpeed(settings.speed.toStringAsFixed(2)),
+            ),
           ),
           TextButton.icon(
             onPressed: () => showSleepTimerSheet(context, controller.book!.id),
             icon: const Icon(Icons.bedtime_outlined),
-            label: Text(_sleepLabel(controller)),
+            label: Text(_sleepLabel(l10n, controller)),
           ),
           TextButton.icon(
             onPressed: () => showVolumeSheet(context, controller.book!.id),
             icon: const Icon(Icons.volume_up),
-            label: Text(_volumeLabel(controller)),
+            label: Text(_volumeLabel(l10n, controller)),
           ),
           if (controller.sleepTimerPhase == SleepTimerPhase.fading ||
               controller.sleepTimerPhase == SleepTimerPhase.fired)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'Встряхните телефон, чтобы продлить',
+                l10n.shakeToExtend,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
-          if (controller.errorMessage != null)
+          if (error != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                controller.errorMessage!,
+                _errorLabel(l10n, error),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
                 textAlign: TextAlign.center,
               ),
@@ -187,21 +197,29 @@ class _PlayerBody extends StatelessWidget {
     );
   }
 
-  String _sleepLabel(PlayerController controller) {
+  String _sleepLabel(AppLocalizations l10n, PlayerController controller) {
     final remaining = controller.sleepTimerRemaining;
     if (controller.sleepTimerActive && remaining != null) {
-      return 'Сон ${formatClock(remaining)}';
+      return l10n.sleepRemaining(formatClock(remaining));
     }
-    return 'Таймер сна';
+    return l10n.sleepTimer;
   }
 
-  String _volumeLabel(PlayerController controller) {
+  String _volumeLabel(AppLocalizations l10n, PlayerController controller) {
     final state = controller.volumeState;
-    final percent = '${state.percent.round()}%';
+    final percent = l10n.percentValue(state.percent.round());
     if (state.hasBoost) {
-      return 'Громкость $percent +${state.boostDb.round()} дБ';
+      return l10n.volumePercentBoost(percent, state.boostDb.round());
     }
-    return 'Громкость $percent';
+    return l10n.volumePercent(percent);
+  }
+
+  String _errorLabel(AppLocalizations l10n, PlayerError error) {
+    return switch (error) {
+      PlayerError.bookNotFound => l10n.bookNotFound,
+      PlayerError.startFailed => l10n.playbackStartFailed,
+      PlayerError.trackFailed => l10n.playbackTrackFailed,
+    };
   }
 }
 

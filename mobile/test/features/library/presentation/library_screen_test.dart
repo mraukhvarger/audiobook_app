@@ -5,6 +5,7 @@ import 'package:player_book/features/library/domain/models/book.dart';
 import 'package:player_book/features/library/domain/models/book_summary.dart';
 import 'package:player_book/features/library/presentation/providers/library_providers.dart';
 import 'package:player_book/features/library/presentation/screens/library_screen.dart';
+import 'package:player_book/l10n/generated/app_localizations.dart';
 
 Widget _wrap(List<BookSummary> items) {
   return ProviderScope(
@@ -12,7 +13,12 @@ Widget _wrap(List<BookSummary> items) {
       libraryBookSummariesProvider.overrideWith((ref) async => items),
       folderPickerProvider.overrideWithValue(null),
     ],
-    child: const MaterialApp(home: LibraryScreen()),
+    child: const MaterialApp(
+      locale: Locale('ru'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: LibraryScreen(),
+    ),
   );
 }
 

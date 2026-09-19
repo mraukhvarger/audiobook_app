@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:player_book/l10n/generated/app_localizations.dart';
 
 import '../../domain/volume/volume_state.dart';
 import '../providers/player_providers.dart';
@@ -20,6 +21,7 @@ class VolumeSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final controller = ref.watch(playerControllerProvider(bookId));
     final state = controller.volumeState;
 
@@ -30,7 +32,7 @@ class VolumeSheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Громкость', style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.volume, style: Theme.of(context).textTheme.titleMedium),
             Row(
               children: [
                 const Icon(Icons.volume_down),
@@ -43,7 +45,7 @@ class VolumeSheet extends ConsumerWidget {
                                 VolumeState.volumeStep)
                             .round(),
                     value: state.volume,
-                    label: '${state.percent.round()}%',
+                    label: l10n.percentValue(state.percent.round()),
                     onChanged: controller.setVolume,
                   ),
                 ),
@@ -52,14 +54,17 @@ class VolumeSheet extends ConsumerWidget {
                 SizedBox(
                   width: 48,
                   child: Text(
-                    '${state.percent.round()}%',
+                    l10n.percentValue(state.percent.round()),
                     textAlign: TextAlign.end,
                   ),
                 ),
               ],
             ),
             const Divider(height: 32),
-            Text('Усиление', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              l10n.volumeBoost,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             Row(
               children: [
                 Expanded(
@@ -72,8 +77,8 @@ class VolumeSheet extends ConsumerWidget {
                             .round(),
                     value: state.boostDb,
                     label: state.hasBoost
-                        ? '+${state.boostDb.round()} дБ'
-                        : 'выключено',
+                        ? l10n.boostDb(state.boostDb.round())
+                        : l10n.boostOff,
                     onChanged: (value) =>
                         controller.setBoost(value.roundToDouble()),
                   ),
@@ -82,7 +87,9 @@ class VolumeSheet extends ConsumerWidget {
                 SizedBox(
                   width: 64,
                   child: Text(
-                    state.hasBoost ? '+${state.boostDb.round()} дБ' : 'выкл',
+                    state.hasBoost
+                        ? l10n.boostDb(state.boostDb.round())
+                        : l10n.boostOffShort,
                     textAlign: TextAlign.end,
                   ),
                 ),
@@ -92,7 +99,7 @@ class VolumeSheet extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  'Усиление тихих записей может искажать громкий материал',
+                  l10n.boostWarning,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -100,7 +107,7 @@ class VolumeSheet extends ConsumerWidget {
             TextButton.icon(
               onPressed: controller.resetVolume,
               icon: const Icon(Icons.restart_alt),
-              label: const Text('Сбросить громкость и усиление'),
+              label: Text(l10n.resetVolumeBoost),
             ),
           ],
         ),

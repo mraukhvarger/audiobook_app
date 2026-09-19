@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../features/library/presentation/screens/book_screen.dart';
 import '../features/library/presentation/screens/library_screen.dart';
 import '../features/player/presentation/screens/player_screen.dart';
+import '../features/storage/presentation/screens/remote_browser_screen.dart';
+import '../features/storage/presentation/screens/storage_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -12,6 +14,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/',
         name: 'library',
         builder: (context, state) => const LibraryScreen(),
+      ),
+      GoRoute(
+        path: '/storage',
+        name: 'storage',
+        builder: (context, state) => const StorageScreen(),
+        routes: [
+          GoRoute(
+            path: 'browse',
+            name: 'storageBrowse',
+            builder: (context, state) => const RemoteBrowserScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/book/:id',

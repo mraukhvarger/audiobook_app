@@ -1,0 +1,217 @@
+{
+  "@@locale": "en",
+  "appTitle": "Player Book",
+  "libraryTitle": "Library",
+  "add": "Add",
+  "addBook": "Add book",
+  "folderPickerAndroidOnly": "Folder selection is only available on Android",
+  "untitled": "Untitled",
+  "addedBook": "Added: {title}",
+  "@addedBook": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "importNoAudioFiles": "No supported audio files found in the selected folder",
+  "importFailed": "Import failed: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "deleteBookTitle": "Delete book?",
+  "deleteBookMessage": "\"{title}\" will be removed from the library. The original files will remain on the device.",
+  "@deleteBookMessage": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "libraryEmpty": "Library is empty",
+  "libraryEmptyHint": "Add a folder with an audiobook",
+  "importingBook": "Importing book...",
+  "errorWithMessage": "Error: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+  "backToLibrary": "Back to library",
+  "bookFallback": "Book",
+  "bookNotFound": "Book not found",
+  "bookTracksCount": "{count} tracks · {duration}",
+  "@bookTracksCount": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "duration": {"type": "String"}
+    }
+  },
+  "durationHoursMinutes": "{hours} h {minutes} min",
+  "@durationHoursMinutes": {
+    "placeholders": {
+      "hours": {"type": "int"},
+      "minutes": {"type": "int"}
+    }
+  },
+  "durationMinutes": "{minutes} min",
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "listenedPercent": "Listened {percent}%",
+  "@listenedPercent": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "continueListening": "Continue",
+  "listen": "Listen",
+  "back": "Back",
+  "playerFallback": "Player",
+  "playbackSettingsTitle": "Playback settings",
+  "trackOfTotal": "Track {current} of {total}",
+  "@trackOfTotal": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "skipBackSeconds": "−{seconds}s",
+  "@skipBackSeconds": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "skipForwardSeconds": "+{seconds}s",
+  "@skipForwardSeconds": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "play": "Play",
+  "pause": "Pause",
+  "playbackSpeed": "Speed {speed}x",
+  "@playbackSpeed": {
+    "placeholders": {
+      "speed": {"type": "String"}
+    }
+  },
+  "sleepRemaining": "Sleep {time}",
+  "@sleepRemaining": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "sleepTimer": "Sleep timer",
+  "sleepRemainingLeft": "Remaining {time}",
+  "@sleepRemainingLeft": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "durationLabel": "Duration",
+  "durationMinutesEllipsis": "{minutes} min…",
+  "@durationMinutesEllipsis": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "shakeReaction": "Shake response",
+  "sensitivity": "Sensitivity",
+  "sensitivityLow": "Low",
+  "sensitivityMedium": "Medium",
+  "sensitivityHigh": "High",
+  "simulateShakeDebug": "Simulate shake (debug)",
+  "timerDurationTitle": "Timer duration",
+  "minutesSuffix": "min",
+  "sleepTimerRange": "From 1 to 480 minutes",
+  "save": "Save",
+  "volume": "Volume",
+  "percentValue": "{percent}%",
+  "@percentValue": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "volumePercent": "Volume {percent}",
+  "@volumePercent": {
+    "placeholders": {
+      "percent": {"type": "String"}
+    }
+  },
+  "volumePercentBoost": "Volume {percent} +{db} dB",
+  "@volumePercentBoost": {
+    "placeholders": {
+      "percent": {"type": "String"},
+      "db": {"type": "int"}
+    }
+  },
+  "volumeBoost": "Boost",
+  "boostDb": "+{db} dB",
+  "@boostDb": {
+    "placeholders": {
+      "db": {"type": "int"}
+    }
+  },
+  "boostOff": "off",
+  "boostOffShort": "off",
+  "boostWarning": "Boosting quiet recordings may distort loud material",
+  "resetVolumeBoost": "Reset volume and boost",
+  "shakeToExtend": "Shake your phone to extend",
+  "playbackStartFailed": "Failed to start playback",
+  "playbackTrackFailed": "Failed to play the track, skipping to the next one",
+  "speed": "Speed",
+  "skipInterval": "Skip interval",
+  "secondsShort": "{seconds}s",
+  "@secondsShort": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "autoRewind": "Auto-rewind on resume",
+  "storageTitle": "Storage",
+  "storageProviderWebDav": "WebDAV (Yandex.Disk)",
+  "storageUrlLabel": "Server address",
+  "storageUsernameLabel": "Login",
+  "storagePasswordLabel": "App password",
+  "storageConnect": "Connect",
+  "storageDisconnect": "Disconnect",
+  "storageConnected": "Connected",
+  "storageNotConnected": "Not connected",
+  "storageConnectedSuccess": "Storage connected",
+  "storageDisconnected": "Storage disconnected",
+  "storageUrlRequired": "Enter the server address",
+  "storageCredentialsRequired": "Enter login and password",
+  "storageBrowse": "Browse storage",
+  "storageEmptyFolder": "Folder is empty",
+  "remoteImportFolder": "Import folder",
+  "remoteLoadFailed": "Failed to load contents: {error}",
+  "@remoteLoadFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "remoteImportNoAudio": "No supported audio files in this folder",
+  "cacheNone": "Network required",
+  "cachePartial": "Partially offline",
+  "cacheCached": "Available offline",
+  "cacheDownload": "Download for offline",
+  "cacheDownloading": "Downloading {percent}%",
+  "@cacheDownloading": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "cacheClear": "Remove download",
+  "cacheClearTitle": "Remove download?",
+  "cacheClearMessage": "Local copies of \"{title}\" will be removed. The book stays in the library.",
+  "@cacheClearMessage": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "cacheDownloaded": "Book is available offline",
+  "cacheCleared": "Download removed"
+}

@@ -15,6 +15,7 @@ const String localSourceProvider = 'local';
 class ImportBookFromFolder {
   ImportBookFromFolder({
     required AudioSource audioSource,
+    this.sourceProvider = localSourceProvider,
     IdGenerator? idGenerator,
     DateTime Function()? now,
   })  : _audioSource = audioSource,
@@ -22,6 +23,7 @@ class ImportBookFromFolder {
         _now = now ?? DateTime.now;
 
   final AudioSource _audioSource;
+  final String sourceProvider;
   final IdGenerator _idGenerator;
   final DateTime Function() _now;
 
@@ -53,6 +55,8 @@ class ImportBookFromFolder {
           uri: file.ref,
           durationMs: duration.inMilliseconds,
           sizeBytes: file.sizeBytes,
+          sourceProvider: sourceProvider,
+          sourceRef: file.sourceRef ?? file.ref,
         ),
       );
     }
@@ -64,7 +68,7 @@ class ImportBookFromFolder {
       title: metadata?.title ?? folderName,
       author: metadata?.author,
       coverPath: metadata?.coverPath,
-      sourceProvider: localSourceProvider,
+      sourceProvider: sourceProvider,
       sourceRef: folderRef,
       createdAt: _now(),
     );

@@ -7,6 +7,7 @@ import 'package:player_book/features/library/domain/models/book_summary.dart';
 import 'package:player_book/features/library/domain/models/track.dart';
 import 'package:player_book/features/library/presentation/providers/library_providers.dart';
 import 'package:player_book/features/library/presentation/screens/book_screen.dart';
+import 'package:player_book/l10n/generated/app_localizations.dart';
 
 final _book = Book(
   id: 'book-1',
@@ -51,7 +52,12 @@ Widget _wrap({BookSummary? summary}) {
       bookTracksProvider('book-1').overrideWith((ref) async => _tracks),
       bookSummaryProvider('book-1').overrideWith((ref) async => summary),
     ],
-    child: MaterialApp.router(routerConfig: router),
+    child: MaterialApp.router(
+      locale: const Locale('ru'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      routerConfig: router,
+    ),
   );
 }
 

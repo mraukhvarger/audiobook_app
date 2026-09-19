@@ -72,6 +72,16 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> with _$LibraryDaoMixin {
         .get();
   }
 
+  Future<void> setTrackCachePath(String trackId, String? cachePath) {
+    return (update(tracks)..where((t) => t.id.equals(trackId)))
+        .write(TracksCompanion(cachePath: Value(cachePath)));
+  }
+
+  Future<void> clearCachePaths(String bookId) {
+    return (update(tracks)..where((t) => t.bookId.equals(bookId)))
+        .write(const TracksCompanion(cachePath: Value<String?>(null)));
+  }
+
   Future<void> deleteBook(String id) async {
     await (delete(books)..where((t) => t.id.equals(id))).go();
   }

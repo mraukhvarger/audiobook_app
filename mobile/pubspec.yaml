@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   just_audio: ^0.9.40
   just_audio_background: ^0.0.1-beta.13
   audio_session: ^0.1.21
@@ -23,6 +26,9 @@ dependencies:
   googleapis: ^13.2.0
   shared_preferences: ^2.3.2
   collection: ^1.18.0
+  webdav_client: ^1.2.2
+  dio: ^5.11.1
+  flutter_secure_storage: ^9.2.2
 
 dev_dependencies:
   flutter_test:
@@ -33,3 +39,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true

@@ -435,9 +435,37 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, TrackRow> {
   late final GeneratedColumn<int> sizeBytes = GeneratedColumn<int>(
       'size_bytes', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _sourceProviderMeta =
+      const VerificationMeta('sourceProvider');
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, bookId, order, fileName, uri, durationMs, sizeBytes];
+  late final GeneratedColumn<String> sourceProvider = GeneratedColumn<String>(
+      'source_provider', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _sourceRefMeta =
+      const VerificationMeta('sourceRef');
+  @override
+  late final GeneratedColumn<String> sourceRef = GeneratedColumn<String>(
+      'source_ref', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _cachePathMeta =
+      const VerificationMeta('cachePath');
+  @override
+  late final GeneratedColumn<String> cachePath = GeneratedColumn<String>(
+      'cache_path', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        bookId,
+        order,
+        fileName,
+        uri,
+        durationMs,
+        sizeBytes,
+        sourceProvider,
+        sourceRef,
+        cachePath
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -491,6 +519,20 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, TrackRow> {
     } else if (isInserting) {
       context.missing(_sizeBytesMeta);
     }
+    if (data.containsKey('source_provider')) {
+      context.handle(
+          _sourceProviderMeta,
+          sourceProvider.isAcceptableOrUnknown(
+              data['source_provider']!, _sourceProviderMeta));
+    }
+    if (data.containsKey('source_ref')) {
+      context.handle(_sourceRefMeta,
+          sourceRef.isAcceptableOrUnknown(data['source_ref']!, _sourceRefMeta));
+    }
+    if (data.containsKey('cache_path')) {
+      context.handle(_cachePathMeta,
+          cachePath.isAcceptableOrUnknown(data['cache_path']!, _cachePathMeta));
+    }
     return context;
   }
 
@@ -514,6 +556,12 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, TrackRow> {
           .read(DriftSqlType.int, data['${effectivePrefix}duration_ms'])!,
       sizeBytes: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}size_bytes'])!,
+      sourceProvider: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_provider']),
+      sourceRef: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_ref']),
+      cachePath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}cache_path']),
     );
   }
 
@@ -531,6 +579,9 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
   final String uri;
   final int durationMs;
   final int sizeBytes;
+  final String? sourceProvider;
+  final String? sourceRef;
+  final String? cachePath;
   const TrackRow(
       {required this.id,
       required this.bookId,
@@ -538,7 +589,10 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
       required this.fileName,
       required this.uri,
       required this.durationMs,
-      required this.sizeBytes});
+      required this.sizeBytes,
+      this.sourceProvider,
+      this.sourceRef,
+      this.cachePath});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -549,6 +603,15 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
     map['uri'] = Variable<String>(uri);
     map['duration_ms'] = Variable<int>(durationMs);
     map['size_bytes'] = Variable<int>(sizeBytes);
+    if (!nullToAbsent || sourceProvider != null) {
+      map['source_provider'] = Variable<String>(sourceProvider);
+    }
+    if (!nullToAbsent || sourceRef != null) {
+      map['source_ref'] = Variable<String>(sourceRef);
+    }
+    if (!nullToAbsent || cachePath != null) {
+      map['cache_path'] = Variable<String>(cachePath);
+    }
     return map;
   }
 
@@ -561,6 +624,15 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
       uri: Value(uri),
       durationMs: Value(durationMs),
       sizeBytes: Value(sizeBytes),
+      sourceProvider: sourceProvider == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceProvider),
+      sourceRef: sourceRef == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceRef),
+      cachePath: cachePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cachePath),
     );
   }
 
@@ -575,6 +647,9 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
       uri: serializer.fromJson<String>(json['uri']),
       durationMs: serializer.fromJson<int>(json['durationMs']),
       sizeBytes: serializer.fromJson<int>(json['sizeBytes']),
+      sourceProvider: serializer.fromJson<String?>(json['sourceProvider']),
+      sourceRef: serializer.fromJson<String?>(json['sourceRef']),
+      cachePath: serializer.fromJson<String?>(json['cachePath']),
     );
   }
   @override
@@ -588,6 +663,9 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
       'uri': serializer.toJson<String>(uri),
       'durationMs': serializer.toJson<int>(durationMs),
       'sizeBytes': serializer.toJson<int>(sizeBytes),
+      'sourceProvider': serializer.toJson<String?>(sourceProvider),
+      'sourceRef': serializer.toJson<String?>(sourceRef),
+      'cachePath': serializer.toJson<String?>(cachePath),
     };
   }
 
@@ -598,7 +676,10 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
           String? fileName,
           String? uri,
           int? durationMs,
-          int? sizeBytes}) =>
+          int? sizeBytes,
+          Value<String?> sourceProvider = const Value.absent(),
+          Value<String?> sourceRef = const Value.absent(),
+          Value<String?> cachePath = const Value.absent()}) =>
       TrackRow(
         id: id ?? this.id,
         bookId: bookId ?? this.bookId,
@@ -607,6 +688,10 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
         uri: uri ?? this.uri,
         durationMs: durationMs ?? this.durationMs,
         sizeBytes: sizeBytes ?? this.sizeBytes,
+        sourceProvider:
+            sourceProvider.present ? sourceProvider.value : this.sourceProvider,
+        sourceRef: sourceRef.present ? sourceRef.value : this.sourceRef,
+        cachePath: cachePath.present ? cachePath.value : this.cachePath,
       );
   TrackRow copyWithCompanion(TracksCompanion data) {
     return TrackRow(
@@ -618,6 +703,11 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
       durationMs:
           data.durationMs.present ? data.durationMs.value : this.durationMs,
       sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      sourceProvider: data.sourceProvider.present
+          ? data.sourceProvider.value
+          : this.sourceProvider,
+      sourceRef: data.sourceRef.present ? data.sourceRef.value : this.sourceRef,
+      cachePath: data.cachePath.present ? data.cachePath.value : this.cachePath,
     );
   }
 
@@ -630,14 +720,17 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
           ..write('fileName: $fileName, ')
           ..write('uri: $uri, ')
           ..write('durationMs: $durationMs, ')
-          ..write('sizeBytes: $sizeBytes')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('sourceProvider: $sourceProvider, ')
+          ..write('sourceRef: $sourceRef, ')
+          ..write('cachePath: $cachePath')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, bookId, order, fileName, uri, durationMs, sizeBytes);
+  int get hashCode => Object.hash(id, bookId, order, fileName, uri, durationMs,
+      sizeBytes, sourceProvider, sourceRef, cachePath);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -648,7 +741,10 @@ class TrackRow extends DataClass implements Insertable<TrackRow> {
           other.fileName == this.fileName &&
           other.uri == this.uri &&
           other.durationMs == this.durationMs &&
-          other.sizeBytes == this.sizeBytes);
+          other.sizeBytes == this.sizeBytes &&
+          other.sourceProvider == this.sourceProvider &&
+          other.sourceRef == this.sourceRef &&
+          other.cachePath == this.cachePath);
 }
 
 class TracksCompanion extends UpdateCompanion<TrackRow> {
@@ -659,6 +755,9 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
   final Value<String> uri;
   final Value<int> durationMs;
   final Value<int> sizeBytes;
+  final Value<String?> sourceProvider;
+  final Value<String?> sourceRef;
+  final Value<String?> cachePath;
   final Value<int> rowid;
   const TracksCompanion({
     this.id = const Value.absent(),
@@ -668,6 +767,9 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
     this.uri = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.sizeBytes = const Value.absent(),
+    this.sourceProvider = const Value.absent(),
+    this.sourceRef = const Value.absent(),
+    this.cachePath = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TracksCompanion.insert({
@@ -678,6 +780,9 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
     required String uri,
     required int durationMs,
     required int sizeBytes,
+    this.sourceProvider = const Value.absent(),
+    this.sourceRef = const Value.absent(),
+    this.cachePath = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         bookId = Value(bookId),
@@ -694,6 +799,9 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
     Expression<String>? uri,
     Expression<int>? durationMs,
     Expression<int>? sizeBytes,
+    Expression<String>? sourceProvider,
+    Expression<String>? sourceRef,
+    Expression<String>? cachePath,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -704,6 +812,9 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
       if (uri != null) 'uri': uri,
       if (durationMs != null) 'duration_ms': durationMs,
       if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (sourceProvider != null) 'source_provider': sourceProvider,
+      if (sourceRef != null) 'source_ref': sourceRef,
+      if (cachePath != null) 'cache_path': cachePath,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -716,6 +827,9 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
       Value<String>? uri,
       Value<int>? durationMs,
       Value<int>? sizeBytes,
+      Value<String?>? sourceProvider,
+      Value<String?>? sourceRef,
+      Value<String?>? cachePath,
       Value<int>? rowid}) {
     return TracksCompanion(
       id: id ?? this.id,
@@ -725,6 +839,9 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
       uri: uri ?? this.uri,
       durationMs: durationMs ?? this.durationMs,
       sizeBytes: sizeBytes ?? this.sizeBytes,
+      sourceProvider: sourceProvider ?? this.sourceProvider,
+      sourceRef: sourceRef ?? this.sourceRef,
+      cachePath: cachePath ?? this.cachePath,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -753,6 +870,15 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
     if (sizeBytes.present) {
       map['size_bytes'] = Variable<int>(sizeBytes.value);
     }
+    if (sourceProvider.present) {
+      map['source_provider'] = Variable<String>(sourceProvider.value);
+    }
+    if (sourceRef.present) {
+      map['source_ref'] = Variable<String>(sourceRef.value);
+    }
+    if (cachePath.present) {
+      map['cache_path'] = Variable<String>(cachePath.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -769,6 +895,323 @@ class TracksCompanion extends UpdateCompanion<TrackRow> {
           ..write('uri: $uri, ')
           ..write('durationMs: $durationMs, ')
           ..write('sizeBytes: $sizeBytes, ')
+          ..write('sourceProvider: $sourceProvider, ')
+          ..write('sourceRef: $sourceRef, ')
+          ..write('cachePath: $cachePath, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CacheEntriesTable extends CacheEntries
+    with TableInfo<$CacheEntriesTable, CacheEntryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CacheEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _trackIdMeta =
+      const VerificationMeta('trackId');
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+      'track_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
+  @override
+  late final GeneratedColumn<String> bookId = GeneratedColumn<String>(
+      'book_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _pathMeta = const VerificationMeta('path');
+  @override
+  late final GeneratedColumn<String> path = GeneratedColumn<String>(
+      'path', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sizeBytesMeta =
+      const VerificationMeta('sizeBytes');
+  @override
+  late final GeneratedColumn<int> sizeBytes = GeneratedColumn<int>(
+      'size_bytes', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _lastPlayedAtMeta =
+      const VerificationMeta('lastPlayedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastPlayedAt = GeneratedColumn<DateTime>(
+      'last_played_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [trackId, bookId, path, sizeBytes, lastPlayedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cache_entries';
+  @override
+  VerificationContext validateIntegrity(Insertable<CacheEntryRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('track_id')) {
+      context.handle(_trackIdMeta,
+          trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta));
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('book_id')) {
+      context.handle(_bookIdMeta,
+          bookId.isAcceptableOrUnknown(data['book_id']!, _bookIdMeta));
+    } else if (isInserting) {
+      context.missing(_bookIdMeta);
+    }
+    if (data.containsKey('path')) {
+      context.handle(
+          _pathMeta, path.isAcceptableOrUnknown(data['path']!, _pathMeta));
+    } else if (isInserting) {
+      context.missing(_pathMeta);
+    }
+    if (data.containsKey('size_bytes')) {
+      context.handle(_sizeBytesMeta,
+          sizeBytes.isAcceptableOrUnknown(data['size_bytes']!, _sizeBytesMeta));
+    } else if (isInserting) {
+      context.missing(_sizeBytesMeta);
+    }
+    if (data.containsKey('last_played_at')) {
+      context.handle(
+          _lastPlayedAtMeta,
+          lastPlayedAt.isAcceptableOrUnknown(
+              data['last_played_at']!, _lastPlayedAtMeta));
+    } else if (isInserting) {
+      context.missing(_lastPlayedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {trackId};
+  @override
+  CacheEntryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CacheEntryRow(
+      trackId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}track_id'])!,
+      bookId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}book_id'])!,
+      path: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}path'])!,
+      sizeBytes: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}size_bytes'])!,
+      lastPlayedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_played_at'])!,
+    );
+  }
+
+  @override
+  $CacheEntriesTable createAlias(String alias) {
+    return $CacheEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class CacheEntryRow extends DataClass implements Insertable<CacheEntryRow> {
+  final String trackId;
+  final String bookId;
+  final String path;
+  final int sizeBytes;
+  final DateTime lastPlayedAt;
+  const CacheEntryRow(
+      {required this.trackId,
+      required this.bookId,
+      required this.path,
+      required this.sizeBytes,
+      required this.lastPlayedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['track_id'] = Variable<String>(trackId);
+    map['book_id'] = Variable<String>(bookId);
+    map['path'] = Variable<String>(path);
+    map['size_bytes'] = Variable<int>(sizeBytes);
+    map['last_played_at'] = Variable<DateTime>(lastPlayedAt);
+    return map;
+  }
+
+  CacheEntriesCompanion toCompanion(bool nullToAbsent) {
+    return CacheEntriesCompanion(
+      trackId: Value(trackId),
+      bookId: Value(bookId),
+      path: Value(path),
+      sizeBytes: Value(sizeBytes),
+      lastPlayedAt: Value(lastPlayedAt),
+    );
+  }
+
+  factory CacheEntryRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CacheEntryRow(
+      trackId: serializer.fromJson<String>(json['trackId']),
+      bookId: serializer.fromJson<String>(json['bookId']),
+      path: serializer.fromJson<String>(json['path']),
+      sizeBytes: serializer.fromJson<int>(json['sizeBytes']),
+      lastPlayedAt: serializer.fromJson<DateTime>(json['lastPlayedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'trackId': serializer.toJson<String>(trackId),
+      'bookId': serializer.toJson<String>(bookId),
+      'path': serializer.toJson<String>(path),
+      'sizeBytes': serializer.toJson<int>(sizeBytes),
+      'lastPlayedAt': serializer.toJson<DateTime>(lastPlayedAt),
+    };
+  }
+
+  CacheEntryRow copyWith(
+          {String? trackId,
+          String? bookId,
+          String? path,
+          int? sizeBytes,
+          DateTime? lastPlayedAt}) =>
+      CacheEntryRow(
+        trackId: trackId ?? this.trackId,
+        bookId: bookId ?? this.bookId,
+        path: path ?? this.path,
+        sizeBytes: sizeBytes ?? this.sizeBytes,
+        lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
+      );
+  CacheEntryRow copyWithCompanion(CacheEntriesCompanion data) {
+    return CacheEntryRow(
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      bookId: data.bookId.present ? data.bookId.value : this.bookId,
+      path: data.path.present ? data.path.value : this.path,
+      sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      lastPlayedAt: data.lastPlayedAt.present
+          ? data.lastPlayedAt.value
+          : this.lastPlayedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CacheEntryRow(')
+          ..write('trackId: $trackId, ')
+          ..write('bookId: $bookId, ')
+          ..write('path: $path, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('lastPlayedAt: $lastPlayedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(trackId, bookId, path, sizeBytes, lastPlayedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CacheEntryRow &&
+          other.trackId == this.trackId &&
+          other.bookId == this.bookId &&
+          other.path == this.path &&
+          other.sizeBytes == this.sizeBytes &&
+          other.lastPlayedAt == this.lastPlayedAt);
+}
+
+class CacheEntriesCompanion extends UpdateCompanion<CacheEntryRow> {
+  final Value<String> trackId;
+  final Value<String> bookId;
+  final Value<String> path;
+  final Value<int> sizeBytes;
+  final Value<DateTime> lastPlayedAt;
+  final Value<int> rowid;
+  const CacheEntriesCompanion({
+    this.trackId = const Value.absent(),
+    this.bookId = const Value.absent(),
+    this.path = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.lastPlayedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CacheEntriesCompanion.insert({
+    required String trackId,
+    required String bookId,
+    required String path,
+    required int sizeBytes,
+    required DateTime lastPlayedAt,
+    this.rowid = const Value.absent(),
+  })  : trackId = Value(trackId),
+        bookId = Value(bookId),
+        path = Value(path),
+        sizeBytes = Value(sizeBytes),
+        lastPlayedAt = Value(lastPlayedAt);
+  static Insertable<CacheEntryRow> custom({
+    Expression<String>? trackId,
+    Expression<String>? bookId,
+    Expression<String>? path,
+    Expression<int>? sizeBytes,
+    Expression<DateTime>? lastPlayedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (trackId != null) 'track_id': trackId,
+      if (bookId != null) 'book_id': bookId,
+      if (path != null) 'path': path,
+      if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (lastPlayedAt != null) 'last_played_at': lastPlayedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CacheEntriesCompanion copyWith(
+      {Value<String>? trackId,
+      Value<String>? bookId,
+      Value<String>? path,
+      Value<int>? sizeBytes,
+      Value<DateTime>? lastPlayedAt,
+      Value<int>? rowid}) {
+    return CacheEntriesCompanion(
+      trackId: trackId ?? this.trackId,
+      bookId: bookId ?? this.bookId,
+      path: path ?? this.path,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (bookId.present) {
+      map['book_id'] = Variable<String>(bookId.value);
+    }
+    if (path.present) {
+      map['path'] = Variable<String>(path.value);
+    }
+    if (sizeBytes.present) {
+      map['size_bytes'] = Variable<int>(sizeBytes.value);
+    }
+    if (lastPlayedAt.present) {
+      map['last_played_at'] = Variable<DateTime>(lastPlayedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CacheEntriesCompanion(')
+          ..write('trackId: $trackId, ')
+          ..write('bookId: $bookId, ')
+          ..write('path: $path, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('lastPlayedAt: $lastPlayedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1098,13 +1541,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $BooksTable books = $BooksTable(this);
   late final $TracksTable tracks = $TracksTable(this);
+  late final $CacheEntriesTable cacheEntries = $CacheEntriesTable(this);
   late final $BookProgressTable bookProgress = $BookProgressTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [books, tracks, bookProgress];
+      [books, tracks, cacheEntries, bookProgress];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
         [
@@ -1488,6 +1932,9 @@ typedef $$TracksTableCreateCompanionBuilder = TracksCompanion Function({
   required String uri,
   required int durationMs,
   required int sizeBytes,
+  Value<String?> sourceProvider,
+  Value<String?> sourceRef,
+  Value<String?> cachePath,
   Value<int> rowid,
 });
 typedef $$TracksTableUpdateCompanionBuilder = TracksCompanion Function({
@@ -1498,6 +1945,9 @@ typedef $$TracksTableUpdateCompanionBuilder = TracksCompanion Function({
   Value<String> uri,
   Value<int> durationMs,
   Value<int> sizeBytes,
+  Value<String?> sourceProvider,
+  Value<String?> sourceRef,
+  Value<String?> cachePath,
   Value<int> rowid,
 });
 
@@ -1547,6 +1997,16 @@ class $$TracksTableFilterComposer
   ColumnFilters<int> get sizeBytes => $composableBuilder(
       column: $table.sizeBytes, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get sourceProvider => $composableBuilder(
+      column: $table.sourceProvider,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceRef => $composableBuilder(
+      column: $table.sourceRef, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get cachePath => $composableBuilder(
+      column: $table.cachePath, builder: (column) => ColumnFilters(column));
+
   $$BooksTableFilterComposer get bookId {
     final $$BooksTableFilterComposer composer = $composerBuilder(
         composer: this,
@@ -1595,6 +2055,16 @@ class $$TracksTableOrderingComposer
   ColumnOrderings<int> get sizeBytes => $composableBuilder(
       column: $table.sizeBytes, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get sourceProvider => $composableBuilder(
+      column: $table.sourceProvider,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceRef => $composableBuilder(
+      column: $table.sourceRef, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get cachePath => $composableBuilder(
+      column: $table.cachePath, builder: (column) => ColumnOrderings(column));
+
   $$BooksTableOrderingComposer get bookId {
     final $$BooksTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -1642,6 +2112,15 @@ class $$TracksTableAnnotationComposer
 
   GeneratedColumn<int> get sizeBytes =>
       $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceProvider => $composableBuilder(
+      column: $table.sourceProvider, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceRef =>
+      $composableBuilder(column: $table.sourceRef, builder: (column) => column);
+
+  GeneratedColumn<String> get cachePath =>
+      $composableBuilder(column: $table.cachePath, builder: (column) => column);
 
   $$BooksTableAnnotationComposer get bookId {
     final $$BooksTableAnnotationComposer composer = $composerBuilder(
@@ -1694,6 +2173,9 @@ class $$TracksTableTableManager extends RootTableManager<
             Value<String> uri = const Value.absent(),
             Value<int> durationMs = const Value.absent(),
             Value<int> sizeBytes = const Value.absent(),
+            Value<String?> sourceProvider = const Value.absent(),
+            Value<String?> sourceRef = const Value.absent(),
+            Value<String?> cachePath = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               TracksCompanion(
@@ -1704,6 +2186,9 @@ class $$TracksTableTableManager extends RootTableManager<
             uri: uri,
             durationMs: durationMs,
             sizeBytes: sizeBytes,
+            sourceProvider: sourceProvider,
+            sourceRef: sourceRef,
+            cachePath: cachePath,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -1714,6 +2199,9 @@ class $$TracksTableTableManager extends RootTableManager<
             required String uri,
             required int durationMs,
             required int sizeBytes,
+            Value<String?> sourceProvider = const Value.absent(),
+            Value<String?> sourceRef = const Value.absent(),
+            Value<String?> cachePath = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               TracksCompanion.insert(
@@ -1724,6 +2212,9 @@ class $$TracksTableTableManager extends RootTableManager<
             uri: uri,
             durationMs: durationMs,
             sizeBytes: sizeBytes,
+            sourceProvider: sourceProvider,
+            sourceRef: sourceRef,
+            cachePath: cachePath,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -1781,6 +2272,184 @@ typedef $$TracksTableProcessedTableManager = ProcessedTableManager<
     (TrackRow, $$TracksTableReferences),
     TrackRow,
     PrefetchHooks Function({bool bookId})>;
+typedef $$CacheEntriesTableCreateCompanionBuilder = CacheEntriesCompanion
+    Function({
+  required String trackId,
+  required String bookId,
+  required String path,
+  required int sizeBytes,
+  required DateTime lastPlayedAt,
+  Value<int> rowid,
+});
+typedef $$CacheEntriesTableUpdateCompanionBuilder = CacheEntriesCompanion
+    Function({
+  Value<String> trackId,
+  Value<String> bookId,
+  Value<String> path,
+  Value<int> sizeBytes,
+  Value<DateTime> lastPlayedAt,
+  Value<int> rowid,
+});
+
+class $$CacheEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $CacheEntriesTable> {
+  $$CacheEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get bookId => $composableBuilder(
+      column: $table.bookId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get path => $composableBuilder(
+      column: $table.path, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sizeBytes => $composableBuilder(
+      column: $table.sizeBytes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastPlayedAt => $composableBuilder(
+      column: $table.lastPlayedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$CacheEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CacheEntriesTable> {
+  $$CacheEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get bookId => $composableBuilder(
+      column: $table.bookId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get path => $composableBuilder(
+      column: $table.path, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sizeBytes => $composableBuilder(
+      column: $table.sizeBytes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastPlayedAt => $composableBuilder(
+      column: $table.lastPlayedAt,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$CacheEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CacheEntriesTable> {
+  $$CacheEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get trackId =>
+      $composableBuilder(column: $table.trackId, builder: (column) => column);
+
+  GeneratedColumn<String> get bookId =>
+      $composableBuilder(column: $table.bookId, builder: (column) => column);
+
+  GeneratedColumn<String> get path =>
+      $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<int> get sizeBytes =>
+      $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastPlayedAt => $composableBuilder(
+      column: $table.lastPlayedAt, builder: (column) => column);
+}
+
+class $$CacheEntriesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $CacheEntriesTable,
+    CacheEntryRow,
+    $$CacheEntriesTableFilterComposer,
+    $$CacheEntriesTableOrderingComposer,
+    $$CacheEntriesTableAnnotationComposer,
+    $$CacheEntriesTableCreateCompanionBuilder,
+    $$CacheEntriesTableUpdateCompanionBuilder,
+    (
+      CacheEntryRow,
+      BaseReferences<_$AppDatabase, $CacheEntriesTable, CacheEntryRow>
+    ),
+    CacheEntryRow,
+    PrefetchHooks Function()> {
+  $$CacheEntriesTableTableManager(_$AppDatabase db, $CacheEntriesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CacheEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CacheEntriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CacheEntriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> trackId = const Value.absent(),
+            Value<String> bookId = const Value.absent(),
+            Value<String> path = const Value.absent(),
+            Value<int> sizeBytes = const Value.absent(),
+            Value<DateTime> lastPlayedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              CacheEntriesCompanion(
+            trackId: trackId,
+            bookId: bookId,
+            path: path,
+            sizeBytes: sizeBytes,
+            lastPlayedAt: lastPlayedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String trackId,
+            required String bookId,
+            required String path,
+            required int sizeBytes,
+            required DateTime lastPlayedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              CacheEntriesCompanion.insert(
+            trackId: trackId,
+            bookId: bookId,
+            path: path,
+            sizeBytes: sizeBytes,
+            lastPlayedAt: lastPlayedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$CacheEntriesTable, CacheEntryRow>(table),
+                    BaseReferences<_$AppDatabase, $CacheEntriesTable,
+                        CacheEntryRow>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$CacheEntriesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $CacheEntriesTable,
+    CacheEntryRow,
+    $$CacheEntriesTableFilterComposer,
+    $$CacheEntriesTableOrderingComposer,
+    $$CacheEntriesTableAnnotationComposer,
+    $$CacheEntriesTableCreateCompanionBuilder,
+    $$CacheEntriesTableUpdateCompanionBuilder,
+    (
+      CacheEntryRow,
+      BaseReferences<_$AppDatabase, $CacheEntriesTable, CacheEntryRow>
+    ),
+    CacheEntryRow,
+    PrefetchHooks Function()>;
 typedef $$BookProgressTableCreateCompanionBuilder = BookProgressCompanion
     Function({
   required String bookId,
@@ -2063,6 +2732,8 @@ class $AppDatabaseManager {
       $$BooksTableTableManager(_db, _db.books);
   $$TracksTableTableManager get tracks =>
       $$TracksTableTableManager(_db, _db.tracks);
+  $$CacheEntriesTableTableManager get cacheEntries =>
+      $$CacheEntriesTableTableManager(_db, _db.cacheEntries);
   $$BookProgressTableTableManager get bookProgress =>
       $$BookProgressTableTableManager(_db, _db.bookProgress);
 }

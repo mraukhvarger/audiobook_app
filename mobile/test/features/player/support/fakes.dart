@@ -176,6 +176,22 @@ class FakeLibraryRepository implements LibraryRepository {
   Future<void> saveImportedBook(ImportedBook imported) async {}
 
   @override
+  Future<void> setTrackCachePath(String trackId, String? cachePath) async {
+    tracks = [
+      for (final track in tracks)
+        track.id == trackId ? track.copyWith(cachePath: cachePath) : track,
+    ];
+  }
+
+  @override
+  Future<void> clearCachePaths(String bookId) async {
+    tracks = [
+      for (final track in tracks)
+        track.bookId == bookId ? track.copyWith(clearCachePath: true) : track,
+    ];
+  }
+
+  @override
   Future<void> deleteBook(String id) async {}
 }
 

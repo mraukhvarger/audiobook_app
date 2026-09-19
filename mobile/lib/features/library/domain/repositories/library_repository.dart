@@ -14,5 +14,9 @@ abstract interface class LibraryRepository {
 
   Future<List<Track>> getTracks(String bookId);
 
+  Future<void> setTrackCachePath(String trackId, String? cachePath);
+
+  Future<void> clearCachePaths(String bookId);
+
   Future<void> deleteBook(String id);
 }

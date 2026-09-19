@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:player_book/l10n/generated/app_localizations.dart';
 
 import '../../domain/errors.dart';
 import '../../domain/models/book.dart';
@@ -15,9 +16,20 @@ class LibraryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final summaries = ref.watch(libraryBookSummariesProvider);
+    final hasBooks = summaries.valueOrNull?.isNotEmpty ?? false;
     return Scaffold(
-      appBar: AppBar(title: const Text('Библиотека')),
+      appBar: AppBar(
+        title: Text(l10n.libraryTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cloud_outlined),
+            tooltip: l10n.storageTitle,
+            onPressed: () => context.push('/storage'),
+          ),
+        ],
+      ),
       body: summaries.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _ErrorState(message: '$error'),
@@ -28,20 +40,23 @@ class LibraryScreen extends ConsumerWidget {
                 onDelete: (book) => _confirmDelete(context, ref, book),
               ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _importBook(context, ref),
-        icon: const Icon(Icons.add),
-        label: const Text('Добавить'),
-      ),
+      floatingActionButton: hasBooks
+          ? FloatingActionButton.extended(
+              onPressed: () => _importBook(context, ref),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.add),
+            )
+          : null,
     );
   }
 }
 
 Future<void> _importBook(BuildContext context, WidgetRef ref) async {
+  final l10n = AppLocalizations.of(context);
   final picker = ref.read(folderPickerProvider);
   if (picker == null) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Выбор папки доступен только на Android')),
+      SnackBar(content: Text(l10n.folderPickerAndroidOnly)),
     );
     return;
   }
@@ -61,7 +76,7 @@ Future<void> _importBook(BuildContext context, WidgetRef ref) async {
   try {
     final imported = await import(
       folderRef: folder.ref,
-      folderName: folder.name.isEmpty ? 'Без названия' : folder.name,
+      folderName: folder.name.isEmpty ? l10n.untitled : folder.name,
     );
     await repository.saveImportedBook(imported);
     if (!context.mounted) return;
@@ -69,19 +84,19 @@ Future<void> _importBook(BuildContext context, WidgetRef ref) async {
     ref.invalidate(libraryBookSummariesProvider);
     ref.invalidate(libraryBooksProvider);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Добавлено: ${imported.book.title}')),
+      SnackBar(content: Text(l10n.addedBook(imported.book.title))),
     );
-  } on NoAudioFilesException catch (error) {
+  } on NoAudioFilesException {
     if (!context.mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$error')),
+      SnackBar(content: Text(l10n.importNoAudioFiles)),
     );
   } catch (error) {
     if (!context.mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Не удалось импортировать: $error')),
+      SnackBar(content: Text(l10n.importFailed('$error'))),
     );
   }
 }
@@ -91,22 +106,20 @@ Future<void> _confirmDelete(
   WidgetRef ref,
   Book book,
 ) async {
+  final l10n = AppLocalizations.of(context);
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Удалить книгу?'),
-      content: Text(
-        '«${book.title}» будет удалена из библиотеки. '
-        'Исходные файлы останутся на устройстве.',
-      ),
+      title: Text(l10n.deleteBookTitle),
+      content: Text(l10n.deleteBookMessage(book.title)),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Отмена'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Удалить'),
+          child: Text(l10n.delete),
         ),
       ],
     ),
@@ -150,6 +163,7 @@ class BookListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final book = summary.book;
     final author = book.author;
     return ListTile(
@@ -160,8 +174,8 @@ class BookListTile extends StatelessWidget {
         children: [
           Text(
             author == null
-                ? formatDuration(summary.totalDuration)
-                : '$author · ${formatDuration(summary.totalDuration)}',
+                ? formatDuration(l10n, summary.totalDuration)
+                : '$author · ${formatDuration(l10n, summary.totalDuration)}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 6),
@@ -172,8 +186,8 @@ class BookListTile extends StatelessWidget {
         onSelected: (value) {
           if (value == 'delete') onDelete();
         },
-        itemBuilder: (context) => const [
-          PopupMenuItem(value: 'delete', child: Text('Удалить')),
+        itemBuilder: (context) => [
+          PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
         ],
       ),
       onTap: () => context.push('/book/${book.id}'),
@@ -217,6 +231,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -226,17 +241,16 @@ class _EmptyState extends StatelessWidget {
             const Icon(Icons.library_books_outlined, size: 64),
             const SizedBox(height: 16),
             Text(
-              'Библиотека пуста',
+              l10n.libraryEmpty,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            const Text('Добавьте папку с аудиокнигой',
-                textAlign: TextAlign.center),
+            Text(l10n.libraryEmptyHint, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: onImport,
               icon: const Icon(Icons.add),
-              label: const Text('Добавить книгу'),
+              label: Text(l10n.addBook),
             ),
           ],
         ),
@@ -250,12 +264,13 @@ class _ImportDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AlertDialog(
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
       content: Row(
         children: [
-          CircularProgressIndicator(),
-          SizedBox(width: 20),
-          Expanded(child: Text('Импорт книги...')),
+          const CircularProgressIndicator(),
+          const SizedBox(width: 20),
+          Expanded(child: Text(l10n.importingBook)),
         ],
       ),
     );
@@ -269,10 +284,14 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Text('Ошибка: $message', textAlign: TextAlign.center),
+        child: Text(
+          l10n.errorWithMessage(message),
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }

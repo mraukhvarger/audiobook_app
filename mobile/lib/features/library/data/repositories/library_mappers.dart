@@ -23,5 +23,8 @@ Track trackFromRow(TrackRow row) {
     uri: row.uri,
     durationMs: row.durationMs,
     sizeBytes: row.sizeBytes,
+    sourceProvider: row.sourceProvider,
+    sourceRef: row.sourceRef,
+    cachePath: row.cachePath,
   );
 }

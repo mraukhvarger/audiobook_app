@@ -8,6 +8,7 @@ class EngineTrack {
     this.album,
     this.artUri,
     this.duration,
+    this.headers,
   });
 
   final String id;
@@ -16,6 +17,7 @@ class EngineTrack {
   final String? album;
   final Uri? artUri;
   final Duration? duration;
+  final Map<String, String>? headers;
 }
 
 abstract interface class PlaybackEngine {

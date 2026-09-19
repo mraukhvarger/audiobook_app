@@ -35,9 +35,22 @@ class DriftLibraryRepository implements LibraryRepository {
           uri: track.uri,
           durationMs: track.durationMs,
           sizeBytes: track.sizeBytes,
+          sourceProvider: Value(track.sourceProvider),
+          sourceRef: Value(track.sourceRef),
+          cachePath: Value(track.cachePath),
         );
       }).toList(),
     );
+  }
+
+  @override
+  Future<void> setTrackCachePath(String trackId, String? cachePath) {
+    return _dao.setTrackCachePath(trackId, cachePath);
+  }
+
+  @override
+  Future<void> clearCachePaths(String bookId) {
+    return _dao.clearCachePaths(bookId);
   }
 
   @override

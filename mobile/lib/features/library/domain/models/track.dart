@@ -7,6 +7,9 @@ class Track {
     required this.uri,
     required this.durationMs,
     required this.sizeBytes,
+    this.sourceProvider,
+    this.sourceRef,
+    this.cachePath,
   });
 
   final String id;
@@ -16,8 +19,13 @@ class Track {
   final String uri;
   final int durationMs;
   final int sizeBytes;
+  final String? sourceProvider;
+  final String? sourceRef;
+  final String? cachePath;
 
   Duration get duration => Duration(milliseconds: durationMs);
+
+  bool get isRemote => sourceProvider != null && sourceProvider != 'local';
 
   Track copyWith({
     String? id,
@@ -27,6 +35,10 @@ class Track {
     String? uri,
     int? durationMs,
     int? sizeBytes,
+    String? sourceProvider,
+    String? sourceRef,
+    String? cachePath,
+    bool clearCachePath = false,
   }) {
     return Track(
       id: id ?? this.id,
@@ -36,6 +48,9 @@ class Track {
       uri: uri ?? this.uri,
       durationMs: durationMs ?? this.durationMs,
       sizeBytes: sizeBytes ?? this.sizeBytes,
+      sourceProvider: sourceProvider ?? this.sourceProvider,
+      sourceRef: sourceRef ?? this.sourceRef,
+      cachePath: clearCachePath ? null : (cachePath ?? this.cachePath),
     );
   }
 
@@ -48,7 +63,10 @@ class Track {
         other.fileName == fileName &&
         other.uri == uri &&
         other.durationMs == durationMs &&
-        other.sizeBytes == sizeBytes;
+        other.sizeBytes == sizeBytes &&
+        other.sourceProvider == sourceProvider &&
+        other.sourceRef == sourceRef &&
+        other.cachePath == cachePath;
   }
 
   @override
@@ -60,5 +78,8 @@ class Track {
         uri,
         durationMs,
         sizeBytes,
+        sourceProvider,
+        sourceRef,
+        cachePath,
       );
 }

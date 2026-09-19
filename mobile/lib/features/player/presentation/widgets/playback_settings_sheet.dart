@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:player_book/l10n/generated/app_localizations.dart';
 
 import '../../domain/settings/playback_settings.dart';
 import '../providers/player_providers.dart';
@@ -36,6 +37,7 @@ class PlaybackSettingsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final controller = ref.watch(playerControllerProvider(bookId));
     final settings = controller.settings;
 
@@ -46,7 +48,7 @@ class PlaybackSettingsSheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Скорость', style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.speed, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -72,7 +74,7 @@ class PlaybackSettingsSheet extends ConsumerWidget {
             ),
             const Divider(),
             Text(
-              'Интервал перемотки',
+              l10n.skipInterval,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -81,7 +83,7 @@ class PlaybackSettingsSheet extends ConsumerWidget {
               children: [
                 for (final seconds in skipPresets)
                   ChoiceChip(
-                    label: Text('$seconds с'),
+                    label: Text(l10n.secondsShort(seconds)),
                     selected: settings.skipSeconds == seconds,
                     onSelected: (_) => controller.updateSettings(
                       settings.copyWith(skipSeconds: seconds),
@@ -92,7 +94,7 @@ class PlaybackSettingsSheet extends ConsumerWidget {
             const Divider(),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Автоотмотка при возобновлении'),
+              title: Text(l10n.autoRewind),
               value: settings.autoRewindEnabled,
               onChanged: (value) => controller.updateSettings(
                 settings.copyWith(autoRewindEnabled: value),
@@ -105,7 +107,7 @@ class PlaybackSettingsSheet extends ConsumerWidget {
                 children: [
                   for (final seconds in rewindPresets)
                     ChoiceChip(
-                      label: Text('$seconds с'),
+                      label: Text(l10n.secondsShort(seconds)),
                       selected: settings.autoRewindSeconds == seconds,
                       onSelected: (_) => controller.updateSettings(
                         settings.copyWith(autoRewindSeconds: seconds),

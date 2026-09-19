@@ -5,6 +5,7 @@ import 'package:player_book/features/library/presentation/providers/library_prov
 import 'package:player_book/features/player/domain/volume/volume_state.dart';
 import 'package:player_book/features/player/presentation/providers/player_providers.dart';
 import 'package:player_book/features/player/presentation/screens/player_screen.dart';
+import 'package:player_book/l10n/generated/app_localizations.dart';
 
 import '../support/fakes.dart';
 
@@ -54,7 +55,12 @@ void main() {
           (onShake, threshold) => FakeShakeDetector(onShake),
         ),
       ],
-      child: const MaterialApp(home: PlayerScreen(bookId: 'book-1')),
+      child: const MaterialApp(
+        locale: Locale('ru'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: PlayerScreen(bookId: 'book-1'),
+      ),
     );
   }
 

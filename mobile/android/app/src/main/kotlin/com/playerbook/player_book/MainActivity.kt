@@ -12,13 +12,16 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : AudioServiceActivity() {
     private val channelName = "com.playerbook/audio_source"
+    private val mediaProbeChannelName = "com.playerbook/media_probe"
     private val pickFolderRequestCode = 4201
     private var pendingPickResult: MethodChannel.Result? = null
     private lateinit var audioSource: SafAudioSource
+    private lateinit var mediaProbe: MediaProbe
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         audioSource = SafAudioSource(applicationContext)
+        mediaProbe = MediaProbe(applicationContext)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -42,6 +45,31 @@ class MainActivity : AudioServiceActivity() {
                     else -> result.notImplemented()
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, mediaProbeChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "duration" -> respond(result) {
+                        mediaProbe.duration(
+                            call.requireArgument("uri"),
+                            call.headers(),
+                        )
+                    }
+
+                    "metadata" -> respond(result) {
+                        mediaProbe.metadata(
+                            call.requireArgument("uri"),
+                            call.headers(),
+                        )
+                    }
+
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    private fun MethodCall.headers(): Map<String, String> {
+        val raw = argument<Map<String, String>>("headers")
+        return raw ?: emptyMap()
     }
 
     private fun pickFolder(result: MethodChannel.Result) {

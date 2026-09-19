@@ -68,6 +68,7 @@ class JustAudioEngine implements PlaybackEngine {
         for (final track in tracks)
           AudioSource.uri(
             track.uri,
+            headers: track.headers,
             tag: MediaItem(
               id: track.id,
               title: track.title,

@@ -115,5 +115,22 @@ void main() {
       expect(result.book.title, 'Tagged Title');
       expect(result.book.author, 'Tagged Author');
     });
+
+    test('stores the provided source provider', () async {
+      final source = FakeAudioSource([
+        const AudioFileRef(ref: '/b/1.mp3', fileName: '1.mp3'),
+      ]);
+
+      final import = ImportBookFromFolder(
+        audioSource: source,
+        sourceProvider: 'webdav',
+        idGenerator: sequentialIds(),
+      );
+      final result =
+          await import(folderRef: '/remote/book', folderName: 'Book');
+
+      expect(result.book.sourceProvider, 'webdav');
+      expect(result.book.sourceRef, '/remote/book');
+    });
   });
 }
