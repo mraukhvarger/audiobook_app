@@ -2,20 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:player_book/l10n/generated/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../domain/storage_connection.dart';
 import '../providers/storage_providers.dart';
 
 class StorageScreen extends ConsumerStatefulWidget {
   const StorageScreen({super.key});
+
+  static const String yandexWebDavUrl = 'https://webdav.yandex.ru';
+  static const String webdavHelpUrl =
+      'https://yandex.ru/support/yandex-360/customers/disk/web/ru/webdav';
+  static const String appPasswordUrl =
+      'https://id.yandex.ru/security/app-passwords';
 
   @override
   ConsumerState<StorageScreen> createState() => _StorageScreenState();
 }
 
 class _StorageScreenState extends ConsumerState<StorageScreen> {
-  final _urlController = TextEditingController();
+  final _urlController = TextEditingController(
+    text: StorageScreen.yandexWebDavUrl,
+  );
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  String _providerId = StorageConnection.webDavProviderId;
 
   @override
   void initState() {
@@ -36,6 +48,7 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
     await controller.load();
     final connection = controller.connection;
     if (connection == null || !mounted) return;
+    setState(() => _providerId = connection.providerId);
     _urlController.text = connection.baseUrl.toString();
     _usernameController.text = connection.username;
     _passwordController.text = connection.password;
@@ -68,13 +81,43 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
             ],
           ),
           const SizedBox(height: 24),
+          DropdownButtonFormField<String>(
+            initialValue: _providerId,
+            decoration: InputDecoration(
+              labelText: l10n.storageProviderLabel,
+              border: const OutlineInputBorder(),
+            ),
+            items: [
+              DropdownMenuItem(
+                value: StorageConnection.webDavProviderId,
+                child: Text(l10n.storageProviderYandex),
+              ),
+            ],
+            onChanged: connected
+                ? null
+                : (value) {
+                    if (value == null) return;
+                    setState(() {
+                      _providerId = value;
+                      _urlController.text = StorageScreen.yandexWebDavUrl;
+                    });
+                  },
+          ),
+          if (!connected) ...[
+            const SizedBox(height: 8),
+            Text(
+              l10n.storageDescription,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+          const SizedBox(height: 16),
           TextField(
             controller: _urlController,
             keyboardType: TextInputType.url,
             enabled: !connected,
             decoration: InputDecoration(
               labelText: l10n.storageUrlLabel,
-              hintText: 'https://webdav.yandex.ru',
+              hintText: StorageScreen.yandexWebDavUrl,
               border: const OutlineInputBorder(),
             ),
           ),
@@ -97,6 +140,21 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
               border: const OutlineInputBorder(),
             ),
           ),
+          if (!connected) ...[
+            const SizedBox(height: 16),
+            Text(
+              l10n.storageHelpSectionTitle,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            _HelpLink(
+              label: l10n.storageHelpWebdav,
+              onPressed: () => _openLink(StorageScreen.webdavHelpUrl),
+            ),
+            _HelpLink(
+              label: l10n.storageHelpAppPassword,
+              onPressed: () => _openLink(StorageScreen.appPasswordUrl),
+            ),
+          ],
           if (controller.error != null) ...[
             const SizedBox(height: 16),
             Text(
@@ -133,6 +191,21 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _openLink(String url) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+      if (opened) return;
+    } catch (_) {
+      // Fall through to the message below.
+    }
+    messenger.showSnackBar(SnackBar(content: Text(l10n.storageLinkFailed)));
   }
 
   Future<void> _connect() async {
@@ -180,6 +253,29 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
     _passwordController.clear();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.storageDisconnected)),
+    );
+  }
+}
+
+class _HelpLink extends StatelessWidget {
+  const _HelpLink({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.open_in_new, size: 16),
+        label: Text(label),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          alignment: Alignment.centerLeft,
+        ),
+      ),
     );
   }
 }

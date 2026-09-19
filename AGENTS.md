@@ -21,6 +21,15 @@ flutter run
 flutter test
 flutter analyze
 dart format lib test
+
+# package a release APK for a phone (also: .\build-apk.cmd for double-click)
+.\build-apk.ps1            # build universal APK (runs create-keystore.ps1 on first run)
+.\build-apk.ps1 -Install   # build and install on the connected phone
+.\build-apk.ps1 -Split     # smaller per-ABI APKs
+.\build-apk.ps1 -Bundle    # Play Store .aab
+
+# release signing: keystore + android/key.properties (both git-ignored, back them up)
+.\android\create-keystore.ps1
 ```
 
 ## Environment

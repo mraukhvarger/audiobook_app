@@ -68,15 +68,50 @@ void main() {
     expect(find.text('Не подключено'), findsOneWidget);
   });
 
+  testWidgets('prefills the Yandex WebDAV provider and address', (
+    tester,
+  ) async {
+    final repository = FakeStorageSettingsRepository();
+
+    await tester.pumpWidget(wrap(repository: repository));
+    await settle(tester);
+
+    expect(find.text('Яндекс.Диск (WebDAV)'), findsWidgets);
+    expect(find.text('https://webdav.yandex.ru'), findsWidgets);
+    expect(
+      find.textContaining('протоколу WebDAV'),
+      findsOneWidget,
+    );
+    expect(find.text('Как настроить WebDAV в Яндекс.Диске'), findsOneWidget);
+    expect(find.text('Создать пароль приложения'), findsOneWidget);
+  });
+
   testWidgets('requires a server address before connecting', (tester) async {
     final repository = FakeStorageSettingsRepository();
 
     await tester.pumpWidget(wrap(repository: repository));
     await settle(tester);
 
+    await tester.enterText(find.byType(TextField).first, '');
+    await tester.ensureVisible(find.text('Подключить'));
+    await tester.pump();
     await tester.tap(find.text('Подключить'));
     await settle(tester);
 
     expect(find.text('Укажите адрес сервера'), findsOneWidget);
+  });
+
+  testWidgets('requires credentials before connecting', (tester) async {
+    final repository = FakeStorageSettingsRepository();
+
+    await tester.pumpWidget(wrap(repository: repository));
+    await settle(tester);
+
+    await tester.ensureVisible(find.text('Подключить'));
+    await tester.pump();
+    await tester.tap(find.text('Подключить'));
+    await settle(tester);
+
+    expect(find.text('Укажите логин и пароль'), findsOneWidget);
   });
 }

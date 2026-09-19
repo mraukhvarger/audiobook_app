@@ -109,5 +109,12 @@
   "cacheClearTitle": "Удалить загрузку?",
   "cacheClearMessage": "Локальные копии «{title}» будут удалены. Книга останется в библиотеке.",
   "cacheDownloaded": "Книга доступна офлайн",
-  "cacheCleared": "Загрузка удалена"
+  "cacheCleared": "Загрузка удалена",
+  "storageProviderLabel": "Провайдер",
+  "storageProviderYandex": "Яндекс.Диск (WebDAV)",
+  "storageDescription": "Облако подключается по протоколу WebDAV. Для Яндекс.Диска нужен пароль приложения, а не пароль Яндекс ID.",
+  "storageHelpSectionTitle": "Справка",
+  "storageHelpWebdav": "Как настроить WebDAV в Яндекс.Диске",
+  "storageHelpAppPassword": "Создать пароль приложения",
+  "storageLinkFailed": "Не удалось открыть ссылку"
 }

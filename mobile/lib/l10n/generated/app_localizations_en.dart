@@ -342,4 +342,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cacheCleared => 'Download removed';
+
+  @override
+  String get storageProviderLabel => 'Provider';
+
+  @override
+  String get storageProviderYandex => 'Yandex Disk (WebDAV)';
+
+  @override
+  String get storageDescription =>
+      'The cloud is connected over WebDAV. Yandex Disk requires an app password, not your Yandex ID password.';
+
+  @override
+  String get storageHelpSectionTitle => 'Help';
+
+  @override
+  String get storageHelpWebdav => 'How to set up WebDAV in Yandex Disk';
+
+  @override
+  String get storageHelpAppPassword => 'Create an app password';
+
+  @override
+  String get storageLinkFailed => 'Could not open the link';
 }

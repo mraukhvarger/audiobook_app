@@ -213,5 +213,12 @@
     }
   },
   "cacheDownloaded": "Book is available offline",
-  "cacheCleared": "Download removed"
+  "cacheCleared": "Download removed",
+  "storageProviderLabel": "Provider",
+  "storageProviderYandex": "Yandex Disk (WebDAV)",
+  "storageDescription": "The cloud is connected over WebDAV. Yandex Disk requires an app password, not your Yandex ID password.",
+  "storageHelpSectionTitle": "Help",
+  "storageHelpWebdav": "How to set up WebDAV in Yandex Disk",
+  "storageHelpAppPassword": "Create an app password",
+  "storageLinkFailed": "Could not open the link"
 }

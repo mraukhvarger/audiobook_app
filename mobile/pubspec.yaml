@@ -29,6 +29,7 @@ dependencies:
   webdav_client: ^1.2.2
   dio: ^5.11.1
   flutter_secure_storage: ^9.2.2
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:

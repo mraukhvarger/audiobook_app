@@ -667,6 +667,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download removed'**
   String get cacheCleared;
+
+  /// No description provided for @storageProviderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider'**
+  String get storageProviderLabel;
+
+  /// No description provided for @storageProviderYandex.
+  ///
+  /// In en, this message translates to:
+  /// **'Yandex Disk (WebDAV)'**
+  String get storageProviderYandex;
+
+  /// No description provided for @storageDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The cloud is connected over WebDAV. Yandex Disk requires an app password, not your Yandex ID password.'**
+  String get storageDescription;
+
+  /// No description provided for @storageHelpSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get storageHelpSectionTitle;
+
+  /// No description provided for @storageHelpWebdav.
+  ///
+  /// In en, this message translates to:
+  /// **'How to set up WebDAV in Yandex Disk'**
+  String get storageHelpWebdav;
+
+  /// No description provided for @storageHelpAppPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an app password'**
+  String get storageHelpAppPassword;
+
+  /// No description provided for @storageLinkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the link'**
+  String get storageLinkFailed;
 }
 
 class _AppLocalizationsDelegate

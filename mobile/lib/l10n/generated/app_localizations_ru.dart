@@ -343,4 +343,26 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get cacheCleared => 'Загрузка удалена';
+
+  @override
+  String get storageProviderLabel => 'Провайдер';
+
+  @override
+  String get storageProviderYandex => 'Яндекс.Диск (WebDAV)';
+
+  @override
+  String get storageDescription =>
+      'Облако подключается по протоколу WebDAV. Для Яндекс.Диска нужен пароль приложения, а не пароль Яндекс ID.';
+
+  @override
+  String get storageHelpSectionTitle => 'Справка';
+
+  @override
+  String get storageHelpWebdav => 'Как настроить WebDAV в Яндекс.Диске';
+
+  @override
+  String get storageHelpAppPassword => 'Создать пароль приложения';
+
+  @override
+  String get storageLinkFailed => 'Не удалось открыть ссылку';
 }
