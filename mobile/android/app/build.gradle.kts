@@ -44,6 +44,10 @@ kotlin {
     }
 }
 
+dependencies {
+    implementation("androidx.documentfile:documentfile:1.0.1")
+}
+
 flutter {
     source = "../.."
 }

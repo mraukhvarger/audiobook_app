@@ -22,3 +22,6 @@ Thumbs.db
 *.keystore
 *.jks
 google-services.json
+
+# Local test media
+test_books/
