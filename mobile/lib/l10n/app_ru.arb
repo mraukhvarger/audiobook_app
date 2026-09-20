@@ -116,5 +116,15 @@
   "storageHelpSectionTitle": "Справка",
   "storageHelpWebdav": "Как настроить WebDAV в Яндекс.Диске",
   "storageHelpAppPassword": "Создать пароль приложения",
-  "storageLinkFailed": "Не удалось открыть ссылку"
+  "storageLinkFailed": "Не удалось открыть ссылку",
+  "logsTitle": "Логи",
+  "logsRefresh": "Обновить",
+  "logsClear": "Очистить",
+  "logsClearTitle": "Очистить журнал?",
+  "logsClearMessage": "Все сохранённые записи журнала будут удалены.",
+  "logsLevelLabel": "Уровень",
+  "logsLevelDebug": "Debug",
+  "logsLevelInfo": "Info",
+  "logsLevelError": "Ошибка",
+  "logsEmpty": "Записей нет"
 }

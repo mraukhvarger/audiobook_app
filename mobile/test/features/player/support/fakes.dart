@@ -27,6 +27,8 @@ class FakePlaybackEngine implements PlaybackEngine {
   List<EngineTrack> loadedTracks = const [];
   int? initialIndex;
   Duration? initialPosition;
+  Object? failFirstLoadError;
+  int loadCalls = 0;
   final List<({int? index, Duration position})> seeks = [];
   final List<double> speeds = [];
   final List<double> volumes = [];
@@ -84,6 +86,10 @@ class FakePlaybackEngine implements PlaybackEngine {
     int initialIndex = 0,
     Duration initialPosition = Duration.zero,
   }) async {
+    loadCalls++;
+    if (failFirstLoadError != null && loadCalls == 1) {
+      throw failFirstLoadError!;
+    }
     loadedTracks = tracks;
     this.initialIndex = initialIndex;
     this.initialPosition = initialPosition;

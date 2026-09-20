@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/database_provider.dart';
 import '../../../library/presentation/providers/library_providers.dart';
+import '../../../logs/presentation/providers/log_providers.dart';
 import '../../../storage/presentation/providers/storage_providers.dart';
 import '../../data/database/progress_dao.dart';
 import '../../data/engine/just_audio_engine.dart';
@@ -63,6 +64,8 @@ final playerControllerProvider = ChangeNotifierProvider.autoDispose
     shakeDetectorFactory: ref.watch(shakeDetectorFactoryProvider),
     volumeSettingsRepository: ref.watch(volumeSettingsRepositoryProvider),
     sourceResolver: ref.watch(trackSourceResolverProvider),
+    cache: ref.watch(audioCacheProvider),
+    logger: ref.watch(appLoggerProvider),
   );
   unawaited(controller.initialize());
   return controller;

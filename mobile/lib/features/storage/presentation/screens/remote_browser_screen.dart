@@ -5,6 +5,7 @@ import 'package:player_book/l10n/generated/app_localizations.dart';
 
 import '../../../library/domain/errors.dart';
 import '../../../library/presentation/providers/library_providers.dart';
+import '../../../logs/presentation/providers/log_providers.dart';
 import '../../domain/models/remote_entry.dart';
 import '../../domain/storage_provider.dart';
 import '../providers/storage_providers.dart';
@@ -100,12 +101,16 @@ class _RemoteBrowserScreenState extends ConsumerState<RemoteBrowserScreen> {
       );
       context.go('/');
     } on NoAudioFilesException {
+      ref
+          .read(appLoggerProvider)
+          .info('Remote import skipped: no audio in $_current');
       if (!mounted) return;
       Navigator.of(context).pop();
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.remoteImportNoAudio)),
       );
     } catch (error) {
+      ref.read(appLoggerProvider).error('Remote import failed', error: error);
       if (!mounted) return;
       Navigator.of(context).pop();
       messenger.showSnackBar(

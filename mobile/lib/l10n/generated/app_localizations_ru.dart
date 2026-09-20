@@ -365,4 +365,35 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get storageLinkFailed => 'Не удалось открыть ссылку';
+
+  @override
+  String get logsTitle => 'Логи';
+
+  @override
+  String get logsRefresh => 'Обновить';
+
+  @override
+  String get logsClear => 'Очистить';
+
+  @override
+  String get logsClearTitle => 'Очистить журнал?';
+
+  @override
+  String get logsClearMessage =>
+      'Все сохранённые записи журнала будут удалены.';
+
+  @override
+  String get logsLevelLabel => 'Уровень';
+
+  @override
+  String get logsLevelDebug => 'Debug';
+
+  @override
+  String get logsLevelInfo => 'Info';
+
+  @override
+  String get logsLevelError => 'Ошибка';
+
+  @override
+  String get logsEmpty => 'Записей нет';
 }

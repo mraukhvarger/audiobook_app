@@ -364,4 +364,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storageLinkFailed => 'Could not open the link';
+
+  @override
+  String get logsTitle => 'Logs';
+
+  @override
+  String get logsRefresh => 'Refresh';
+
+  @override
+  String get logsClear => 'Clear';
+
+  @override
+  String get logsClearTitle => 'Clear the log?';
+
+  @override
+  String get logsClearMessage => 'All saved log entries will be removed.';
+
+  @override
+  String get logsLevelLabel => 'Level';
+
+  @override
+  String get logsLevelDebug => 'Debug';
+
+  @override
+  String get logsLevelInfo => 'Info';
+
+  @override
+  String get logsLevelError => 'Error';
+
+  @override
+  String get logsEmpty => 'No entries';
 }

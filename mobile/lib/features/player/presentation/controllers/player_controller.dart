@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/logging/app_logger.dart';
 import '../../../library/domain/models/book.dart';
 import '../../../library/domain/models/track.dart';
 import '../../../library/domain/repositories/library_repository.dart';
+import '../../../storage/domain/cache/audio_cache.dart';
 import '../../../storage/domain/track_source_resolver.dart';
 import '../../domain/engine/playback_engine.dart';
 import '../../domain/models/book_position.dart';
@@ -33,6 +35,8 @@ class PlayerController extends ChangeNotifier {
     required ShakeDetectorFactory shakeDetectorFactory,
     required VolumeSettingsRepository volumeSettingsRepository,
     TrackSourceResolver? sourceResolver,
+    AudioCache? cache,
+    AppLogger? logger,
     DateTime Function()? now,
     Duration saveInterval = const Duration(seconds: 5),
     Duration fadeDuration = const Duration(seconds: 10),
@@ -46,6 +50,8 @@ class PlayerController extends ChangeNotifier {
         _shakeDetectorFactory = shakeDetectorFactory,
         _volumeSettingsRepository = volumeSettingsRepository,
         _sourceResolver = sourceResolver ?? const LocalTrackSourceResolver(),
+        _cache = cache,
+        _logger = logger ?? const NoopAppLogger(),
         _now = now ?? DateTime.now,
         _saveInterval = saveInterval,
         _sleepTimer = SleepTimer(fadeDuration: fadeDuration),
@@ -60,6 +66,8 @@ class PlayerController extends ChangeNotifier {
   final ShakeDetectorFactory _shakeDetectorFactory;
   final VolumeSettingsRepository _volumeSettingsRepository;
   final TrackSourceResolver _sourceResolver;
+  final AudioCache? _cache;
+  final AppLogger _logger;
   final DateTime Function() _now;
   final Duration _saveInterval;
   final SleepTimer _sleepTimer;
@@ -80,6 +88,7 @@ class PlayerController extends ChangeNotifier {
   double _speed = 1.0;
   VolumeState _volumeState = const VolumeState();
   PlayerError? _error;
+  String? _errorDetails;
   PlaybackSettings _settings = const PlaybackSettings();
   SleepTimerSettings _sleepSettings = const SleepTimerSettings();
   DateTime _lastSavedAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -120,6 +129,8 @@ class PlayerController extends ChangeNotifier {
 
   PlayerError? get error => _error;
 
+  String? get errorDetails => _errorDetails;
+
   double get progress {
     if (_completed) return 1;
     final total = durationMs;
@@ -136,6 +147,7 @@ class PlayerController extends ChangeNotifier {
       _volumeState = await _volumeSettingsRepository.load();
       _book = await _libraryRepository.getBook(_bookId);
       if (_book == null) {
+        _logger.error('Book not found: $_bookId');
         _error = PlayerError.bookNotFound;
         _loading = false;
         notifyListeners();
@@ -168,11 +180,28 @@ class PlayerController extends ChangeNotifier {
       _bindStreams();
 
       if (_tracks.isNotEmpty) {
-        await _engine.load(
-          await _engineTracks(),
-          initialIndex: _currentIndex,
-          initialPosition: start.offset,
-        );
+        try {
+          await _engine.load(
+            await _engineTracks(),
+            initialIndex: _currentIndex,
+            initialPosition: start.offset,
+          );
+        } catch (error) {
+          // Streaming a remote track can fail on some devices (e.g. after a
+          // redirect drops the Authorization header). Cache it and retry.
+          _errorDetails = '$error';
+          _logger.info(
+            'Streaming failed, trying to cache the track',
+            error: error,
+          );
+          if (!await _cacheCurrentTrack()) rethrow;
+          await _engine.load(
+            await _engineTracks(),
+            initialIndex: _currentIndex,
+            initialPosition: start.offset,
+          );
+          _errorDetails = null;
+        }
         await _engine.setSpeed(_speed);
         if (_tracks[_currentIndex].isRemote) {
           await _sourceResolver.markPlayed(_tracks[_currentIndex].id);
@@ -183,7 +212,13 @@ class PlayerController extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     } catch (error) {
+      _logger.error(
+        'Player initialize failed for book $_bookId',
+        error: error,
+        stackTrace: StackTrace.current,
+      );
       _error = PlayerError.startFailed;
+      _errorDetails ??= '$error';
       _loading = false;
       notifyListeners();
     }
@@ -436,9 +471,70 @@ class PlayerController extends ChangeNotifier {
   }
 
   void _onError(Object error) {
+    _errorDetails = '$error';
+    _logger.error('Playback error', error: error);
+    unawaited(_handleTrackError());
+  }
+
+  Future<void> _handleTrackError() async {
+    final offset = _currentTrackOffset();
+    if (await _cacheCurrentTrack()) {
+      _error = null;
+      _errorDetails = null;
+      notifyListeners();
+      try {
+        await _engine.load(
+          await _engineTracks(),
+          initialIndex: _currentIndex,
+          initialPosition: offset,
+        );
+        await _engine.setSpeed(_speed);
+        await _engine.play();
+        return;
+      } catch (error) {
+        _errorDetails = '$error';
+      }
+    }
     _error = PlayerError.trackFailed;
     notifyListeners();
-    unawaited(_skipAfterError());
+    await _skipAfterError();
+  }
+
+  /// Downloads the currently playing remote track so it can be played locally.
+  /// Returns false when there is nothing to cache (local, already cached, or
+  /// no cache available).
+  Future<bool> _cacheCurrentTrack() async {
+    final cache = _cache;
+    final book = _book;
+    if (cache == null || book == null) return false;
+    if (_currentIndex < 0 || _currentIndex >= _tracks.length) return false;
+    final track = _tracks[_currentIndex];
+    if (!track.isRemote || track.cachePath != null) return false;
+    try {
+      _logger.info('Caching track ${track.id} for offline playback');
+      await cache.downloadBook(book, [track]);
+    } catch (error) {
+      _logger.error('Failed to cache track ${track.id}', error: error);
+      _errorDetails = '$error';
+      return false;
+    }
+    final refreshed = await _libraryRepository.getTracks(_bookId);
+    if (refreshed.isNotEmpty) {
+      _tracks = refreshed;
+      _timeline = BookTimeline(
+        _tracks.map((item) => item.durationMs).toList(),
+      );
+    }
+    return true;
+  }
+
+  Duration _currentTrackOffset() {
+    if (_tracks.isEmpty) return Duration.zero;
+    final trackStart = _timeline.toTotalMs(
+      BookPosition(trackIndex: _currentIndex, offsetMs: 0),
+    );
+    final offset = (_positionMs - trackStart).clamp(0, durationMs);
+    return Duration(milliseconds: offset);
   }
 
   Future<void> _skipAfterError() async {

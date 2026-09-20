@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../../core/database/database_provider.dart';
 import '../../../library/domain/usecases/import_book_from_folder.dart';
 import '../../../library/presentation/providers/library_providers.dart';
+import '../../../logs/presentation/providers/log_providers.dart';
 import '../../data/cache/cache_dao.dart';
 import '../../data/cache/file_audio_cache.dart';
 import '../../data/media/android_media_probe.dart';
@@ -52,6 +53,7 @@ final storageConnectionControllerProvider =
   return StorageConnectionController(
     repository: ref.watch(storageSettingsRepositoryProvider),
     providerFactory: _webDavProvider,
+    logger: ref.watch(appLoggerProvider),
   );
 });
 

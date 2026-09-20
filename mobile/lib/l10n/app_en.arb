@@ -220,5 +220,15 @@
   "storageHelpSectionTitle": "Help",
   "storageHelpWebdav": "How to set up WebDAV in Yandex Disk",
   "storageHelpAppPassword": "Create an app password",
-  "storageLinkFailed": "Could not open the link"
+  "storageLinkFailed": "Could not open the link",
+  "logsTitle": "Logs",
+  "logsRefresh": "Refresh",
+  "logsClear": "Clear",
+  "logsClearTitle": "Clear the log?",
+  "logsClearMessage": "All saved log entries will be removed.",
+  "logsLevelLabel": "Level",
+  "logsLevelDebug": "Debug",
+  "logsLevelInfo": "Info",
+  "logsLevelError": "Error",
+  "logsEmpty": "No entries"
 }

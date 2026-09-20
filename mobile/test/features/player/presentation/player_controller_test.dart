@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:player_book/features/library/domain/models/book.dart';
+import 'package:player_book/features/library/domain/models/track.dart';
 import 'package:player_book/features/player/domain/engine/playback_engine.dart';
 import 'package:player_book/features/player/domain/models/book_position.dart';
 import 'package:player_book/features/player/domain/models/playback_progress.dart';
@@ -7,6 +9,8 @@ import 'package:player_book/features/player/domain/sleep_timer/sleep_timer.dart'
 import 'package:player_book/features/player/domain/sleep_timer/sleep_timer_settings.dart';
 import 'package:player_book/features/player/domain/volume/volume_state.dart';
 import 'package:player_book/features/player/presentation/controllers/player_controller.dart';
+import 'package:player_book/features/storage/domain/cache/audio_cache.dart';
+import 'package:player_book/features/storage/domain/track_source_resolver.dart';
 
 import '../support/fakes.dart';
 
@@ -416,4 +420,98 @@ void main() {
     await controller.cancelSleepTimer();
     expect(engine.volumes.last, 0.5);
   });
+
+  test('falls back to caching a remote track when streaming fails', () async {
+    library.tracks = [
+      const Track(
+        id: 't1',
+        bookId: 'book-1',
+        order: 0,
+        fileName: '1.mp3',
+        uri: 'https://webdav.example.ru/book/1.mp3',
+        durationMs: tenMinutes,
+        sizeBytes: 100,
+        sourceProvider: 'webdav',
+        sourceRef: '/book/1.mp3',
+      ),
+    ];
+    final cache = _FakeAudioCache(library);
+    controller = PlayerController(
+      bookId: 'book-1',
+      engine: engine,
+      libraryRepository: library,
+      progressRepository: progress,
+      settingsRepository: settings,
+      sleepTimerSettingsRepository: sleepSettings,
+      shakeDetectorFactory: (onShake, threshold) => FakeShakeDetector(onShake),
+      volumeSettingsRepository: volumeSettings,
+      sourceResolver: _CacheAwareResolver(),
+      cache: cache,
+      now: clock.call,
+    );
+    engine.failFirstLoadError = Exception('stream failed');
+
+    await controller.initialize();
+
+    expect(engine.loadCalls, 2);
+    expect(controller.error, isNull);
+    expect(cache.downloaded, ['t1']);
+    expect(library.tracks.single.cachePath, isNotNull);
+    expect(engine.loadedTracks.single.uri.scheme, 'file');
+  });
+}
+
+class _CacheAwareResolver implements TrackSourceResolver {
+  @override
+  Future<ResolvedTrackSource> resolve(Track track) async {
+    final cachePath = track.cachePath;
+    if (cachePath != null) {
+      return ResolvedTrackSource(uri: Uri.file(cachePath), isRemote: false);
+    }
+    return ResolvedTrackSource(
+      uri: Uri.parse(track.uri),
+      headers: const {'Authorization': 'Basic x'},
+      isRemote: true,
+    );
+  }
+
+  @override
+  Future<void> markPlayed(String trackId) async {}
+}
+
+class _FakeAudioCache implements AudioCache {
+  _FakeAudioCache(this.repository);
+
+  final FakeLibraryRepository repository;
+  final List<String> downloaded = [];
+
+  @override
+  Future<void> downloadBook(
+    Book book,
+    List<Track> tracks, {
+    void Function(CacheProgress progress)? onProgress,
+  }) async {
+    for (final track in tracks) {
+      downloaded.add(track.id);
+      await repository.setTrackCachePath(track.id, '/cache/${track.id}.mp3');
+    }
+  }
+
+  @override
+  Future<Map<String, String>> cachedPaths(String bookId) async => {};
+
+  @override
+  Future<void> deleteBook(String bookId) async {}
+
+  @override
+  Future<void> deleteAll() async {}
+
+  @override
+  Future<int> totalSizeBytes() async => 0;
+
+  @override
+  Future<void> enforceLimit(int maxBytes) async {}
+
+  @override
+  Future<void> markPlayed(String trackId, {DateTime? at}) async {}
 }

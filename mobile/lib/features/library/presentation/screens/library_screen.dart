@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:player_book/l10n/generated/app_localizations.dart';
 
+import '../../../logs/presentation/providers/log_providers.dart';
 import '../../domain/errors.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/book_summary.dart';
@@ -23,6 +24,11 @@ class LibraryScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.libraryTitle),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.receipt_long_outlined),
+            tooltip: l10n.logsTitle,
+            onPressed: () => context.push('/logs'),
+          ),
           IconButton(
             icon: const Icon(Icons.cloud_outlined),
             tooltip: l10n.storageTitle,
@@ -87,12 +93,14 @@ Future<void> _importBook(BuildContext context, WidgetRef ref) async {
       SnackBar(content: Text(l10n.addedBook(imported.book.title))),
     );
   } on NoAudioFilesException {
+    ref.read(appLoggerProvider).info('Import skipped: no audio in $folder');
     if (!context.mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.importNoAudioFiles)),
     );
   } catch (error) {
+    ref.read(appLoggerProvider).error('Import failed', error: error);
     if (!context.mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(

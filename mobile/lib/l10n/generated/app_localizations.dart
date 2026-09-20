@@ -709,6 +709,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not open the link'**
   String get storageLinkFailed;
+
+  /// No description provided for @logsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs'**
+  String get logsTitle;
+
+  /// No description provided for @logsRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get logsRefresh;
+
+  /// No description provided for @logsClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get logsClear;
+
+  /// No description provided for @logsClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the log?'**
+  String get logsClearTitle;
+
+  /// No description provided for @logsClearMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'All saved log entries will be removed.'**
+  String get logsClearMessage;
+
+  /// No description provided for @logsLevelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get logsLevelLabel;
+
+  /// No description provided for @logsLevelDebug.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug'**
+  String get logsLevelDebug;
+
+  /// No description provided for @logsLevelInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get logsLevelInfo;
+
+  /// No description provided for @logsLevelError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get logsLevelError;
+
+  /// No description provided for @logsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No entries'**
+  String get logsEmpty;
 }
 
 class _AppLocalizationsDelegate

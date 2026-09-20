@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/library/presentation/screens/book_screen.dart';
 import '../features/library/presentation/screens/library_screen.dart';
+import '../features/logs/presentation/screens/logs_screen.dart';
 import '../features/player/presentation/screens/player_screen.dart';
 import '../features/storage/presentation/screens/remote_browser_screen.dart';
 import '../features/storage/presentation/screens/storage_screen.dart';
@@ -26,6 +27,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const RemoteBrowserScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/logs',
+        name: 'logs',
+        builder: (context, state) => const LogsScreen(),
       ),
       GoRoute(
         path: '/book/:id',

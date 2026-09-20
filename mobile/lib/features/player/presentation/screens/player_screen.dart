@@ -192,6 +192,15 @@ class _PlayerBody extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
+          if (error != null && controller.errorDetails != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                controller.errorDetails!,
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ),
         ],
       ),
     );
